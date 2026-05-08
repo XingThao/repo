@@ -8,7 +8,7 @@
 
 const SHEET_ID   = process.env.SHEET_ID   || '1bU6wuYzg3COmTFR_9vnShaL45eMbMKPIG4XCtVvdKQ8';
 const SHEET_NAME = process.env.SHEET_NAME || 'DATA';
-const API_KEY    = process.env.GOOGLE_API_KEY;
+const API_KEY    = process.env.GG_KEY;
 
 // ─── ดึงข้อมูลจาก Google Sheets ─────────────────────────────
 async function fetchSheetData() {
