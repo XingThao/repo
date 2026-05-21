@@ -1,236 +1,871 @@
-// ============================================================
-// Code.gs — ระบบสารสนเทศบุคลากร มหาวิทยาลัยราชภัฏศรีสะเกษ
-// ============================================================
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <link rel="icon" type="image/png" href="/logo.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบสารสนเทศบุคลากร มหาวิทยาลัยราชภัฏศรีสะเกษ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pri:#1b3d6f; --prid:#0f2547; --pril:#2a5cad;
+  --gld:#c9a53b; --glll:#e8c96a;
+  --bg:#eef2f8; --sw:258px;
+}
+*,*::before,*::after{box-sizing:border-box;}
+body{margin:0;font-family:'Sarabun',sans-serif;background:var(--bg);color:#1e293b;}
+h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
 
-const SHEET_ID   = '1bU6wuYzg3COmTFR_9vnShaL45eMbMKPIG4XCtVvdKQ8';
-const SHEET_NAME = 'DATA';
+/* ── Sidebar ── */
+#sb{position:fixed;top:0;left:0;bottom:0;width:var(--sw);
+  background:linear-gradient(175deg,var(--prid) 0%,var(--pri) 55%,#1e4585 100%);
+  overflow-y:auto;z-index:50;display:flex;flex-direction:column;}
+.sb-logo{padding:17px 15px 13px;border-bottom:1px solid rgba(201,165,59,.25);background:rgba(255,255,255,.04);}
+.sb-ico{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--gld),#a07020);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sb-t{color:#fff;font-family:'Prompt',sans-serif;font-size:13px;font-weight:600;line-height:1.35;}
+.sb-s{color:rgba(201,165,59,.85);font-size:11px;}
+.sb-grp{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  color:rgba(201,165,59,.6);padding:13px 14px 3px;}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 13px;margin:1px 7px;border-radius:7px;
+  cursor:pointer;color:rgba(255,255,255,.72);font-size:13.5px;transition:background .18s,color .18s;}
+.ni:hover{background:rgba(255,255,255,.1);color:#fff;}
+.ni.on{background:linear-gradient(90deg,rgba(201,165,59,.28),rgba(201,165,59,.08));
+  color:var(--glll);border-left:3px solid var(--gld);}
+.ni .ic{width:17px;text-align:center;flex-shrink:0;font-size:15px;}
+#sb>footer{margin-top:auto;padding:11px 14px;border-top:1px solid rgba(255,255,255,.08);
+  font-size:11px;color:rgba(255,255,255,.3);text-align:center;line-height:1.5;}
 
-// ------------------------------------------------------------------
-// doGet
-// ------------------------------------------------------------------
-function doGet(e) {
-  return HtmlService.createHtmlOutputFromFile('Index')
-    .setTitle('ระบบสารสนเทศบุคลากร มหาวิทยาลัยราชภัฏศรีสะเกษ')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+/* ── Main ── */
+#main{margin-left:var(--sw);min-height:100vh;display:flex;flex-direction:column;}
+#topbar{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid #dde3ee;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);padding:0 24px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;}
+.tb-title{font-family:'Prompt',sans-serif;font-size:15px;font-weight:600;color:var(--pri);}
+.btn-prt{display:flex;align-items:center;gap:6px;font-size:13px;color:#64748b;
+  border:1px solid #e2e8f0;border-radius:7px;padding:5px 13px;background:#fff;
+  cursor:pointer;transition:all .18s;}
+.btn-prt:hover{background:#f1f5f9;color:var(--pri);}
+.pw{flex:1;padding:24px;}
+
+/* ── Pages ── */
+.pg{display:none;} .pg.on{display:block;}
+
+/* ── Section title ── */
+.stit{font-family:'Prompt',sans-serif;font-size:17px;font-weight:600;color:var(--pri);
+  border-left:4px solid var(--gld);padding-left:12px;margin-bottom:18px;}
+
+/* ── Table ── */
+.tw{overflow-x:auto;border-radius:9px;box-shadow:0 1px 5px rgba(0,0,0,.09);}
+.dt{width:100%;border-collapse:collapse;font-size:13.5px;}
+.dt th{background:var(--pri);color:#fff;padding:10px 13px;text-align:center;
+  border:1px solid rgba(255,255,255,.14);font-weight:600;white-space:nowrap;}
+.dt td{padding:8px 13px;border:1px solid #e4eaf4;vertical-align:middle;}
+.dt tbody tr:nth-child(even) td{background:#f6f9fd;}
+.dt tbody tr:hover td{background:#e8f0fe;}
+.dt .tot td{background:#fef9ec!important;font-weight:700;color:var(--pri);border-top:2px solid var(--gld);}
+.tc{text-align:center!important;}
+
+/* ── Chart ── */
+.chbox{background:#fff;border-radius:11px;padding:18px;box-shadow:0 1px 5px rgba(0,0,0,.08);}
+.chbox .lbl{font-size:13px;font-weight:600;color:#475569;margin-bottom:12px;text-align:center;}
+.chw{position:relative;max-width:340px;margin:0 auto;}
+
+/* ── Filter ── */
+.fw{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.fl{font-size:13px;font-weight:600;color:#475569;white-space:nowrap;}
+.fs{font-family:'Sarabun',sans-serif;font-size:13px;border:1px solid #cbd5e1;border-radius:7px;
+  padding:6px 30px 6px 11px;background:#fff;cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;}
+
+/* ── Note ── */
+.nb{margin-top:12px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;
+  border-radius:7px;font-size:13px;color:#78350f;}
+
+/* ── Tabs ── */
+.tbar{display:flex;gap:4px;border-bottom:2px solid #e2e8f0;}
+.tbtn{padding:8px 18px;border-radius:7px 7px 0 0;cursor:pointer;font-size:13.5px;font-weight:500;
+  color:#64748b;border:1px solid transparent;border-bottom:none;transition:all .18s;}
+.tbtn.on{background:#fff;border-color:#e2e8f0;color:var(--pri);font-weight:600;}
+.tpane{display:none;background:#fff;border-radius:0 9px 9px 9px;padding:20px;box-shadow:0 1px 5px rgba(0,0,0,.08);}
+.tpane.on{display:block;}
+
+/* ── Skeleton ── */
+.sk{border-radius:5px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);
+  background-size:200% 100%;animation:sh 1.4s infinite;}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── Exec header ── */
+.exhd{background:linear-gradient(90deg,var(--pri),var(--pril));padding:14px 20px;border-radius:9px 9px 0 0;}
+.exhd h2{color:#fff;font-family:'Prompt',sans-serif;font-size:16px;margin:0 0 2px;}
+.exhd p{color:rgba(201,165,59,.9);font-size:12px;margin:0;}
+
+/* ── Faculty/Unit group headers ── */
+.fhdr{background:var(--pri);color:#fff;padding:9px 14px;border-radius:7px;margin-bottom:6px;
+  font-family:'Prompt',sans-serif;font-size:14px;font-weight:600;}
+.uhdr{background:var(--pril);}
+.bhdr{background:#e8f0fe;color:var(--pri);padding:7px 12px;border-radius:5px;margin:8px 0 4px;
+  font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.bhdr::before{content:'';display:inline-block;width:4px;height:14px;background:var(--gld);border-radius:2px;}
+.dean-row td{background:#fef3c7!important;font-weight:600;}
+
+/* ── Print ── */
+.pd{display:none;}
+@media print{
+  #sb,#topbar,.nop{display:none!important;}
+  #main{margin-left:0!important;}
+  .pg{display:none!important;}.pg.on{display:block!important;}
+  body{background:#fff;}
+  .dt th{background:var(--pri)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .dt .dean-row td{background:#fef3c7!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .pd{display:block;text-align:right;font-size:12px;color:#555;margin-top:14px;}
+  #rpt-overlay{display:none!important;}
+}
+/* ── Report Modal ── */
+#rpt-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;}
+#rpt-overlay.on{display:flex;}
+#rpt-box{background:#fff;border-radius:12px;width:92vw;max-width:860px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.25);}
+#rpt-head{background:linear-gradient(90deg,var(--prid),var(--pri));padding:16px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+#rpt-head h2{color:#fff;font-family:'Prompt',sans-serif;font-size:15px;margin:0;}
+#rpt-head-btns{display:flex;gap:8px;}
+#rpt-head-btns button{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:5px 13px;cursor:pointer;font-size:13px;font-family:'Sarabun',sans-serif;}
+#rpt-head-btns button:hover{background:rgba(255,255,255,.28);}
+#rpt-body{flex:1;overflow-y:auto;padding:0;}
+#rpt-loading{padding:48px;text-align:center;color:#64748b;font-size:14px;}
+#rpt-footer{background:linear-gradient(90deg,var(--prid),var(--pri));padding:10px 22px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+#rpt-footer span{color:rgba(255,255,255,.7);font-size:12px;}
+.rpt-page{padding:28px 32px;border-bottom:3px dashed #e2e8f0;}
+.rpt-page:last-child{border-bottom:none;}
+.rpt-pg-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:2px solid var(--gld);}
+.rpt-pg-hd .pg-title{font-family:'Prompt',sans-serif;font-size:15px;font-weight:700;color:var(--pri);}
+.rpt-pg-hd .pg-no{font-size:12px;color:#94a3b8;background:#f1f5f9;padding:3px 10px;border-radius:20px;}
+.rpt-univ{font-size:12px;color:#64748b;margin-bottom:14px;}
+.rpt-chart-row{display:flex;gap:20px;align-items:flex-start;margin-top:4px;}
+.rpt-chart-row .rpt-tbl{flex:1;min-width:0;}
+.rpt-chart-row .rpt-ch{width:210px;flex-shrink:0;}
+.rpt-sub{font-weight:600;color:#475569;font-size:13px;margin:16px 0 8px;}
+body.rpt-printing #sb,body.rpt-printing #topbar,body.rpt-printing #main,body.rpt-printing .nop{display:none!important;}
+body.rpt-printing{background:#fff!important;}
+body.rpt-printing #rpt-overlay{position:static!important;background:none!important;display:block!important;z-index:auto!important;}
+body.rpt-printing #rpt-box{width:100%!important;max-width:100%!important;max-height:none!important;box-shadow:none!important;border-radius:0!important;}
+body.rpt-printing #rpt-head,body.rpt-printing #rpt-footer{display:none!important;}
+body.rpt-printing #rpt-body{overflow:visible!important;}
+body.rpt-printing .rpt-page{page-break-after:always;border-bottom:none!important;}
+body.rpt-printing .dt th{background:var(--pri)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<aside id="sb">
+  <div class="sb-logo flex items-center gap-3">
+    <div class="sb-ico">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    </div>
+    <div>
+      <div class="sb-t">ระบบสารสนเทศบุคลากร</div>
+      <div class="sb-s">มรภ.ศรีสะเกษ</div>
+    </div>
+  </div>
+  <nav>
+    <div class="sb-grp">สารสนเทศบุคลากร</div>
+    <div class="ni on" id="nav-type"    onclick="showPg('type')">    <span class="ic">📊</span>จำแนกตามประเภท</div>
+    <div class="ni"    id="nav-ovv"     onclick="showPg('ovv')">     <span class="ic">🏢</span>จำนวนรวมตามสังกัด</div>
+    <div class="ni"    id="nav-acad"    onclick="showPg('acad')">    <span class="ic">🎓</span>สายวิชาการ</div>
+    <div class="ni"    id="nav-supp"    onclick="showPg('supp')">    <span class="ic">🏅</span>สายสนับสนุน</div>
+    <div class="ni"    id="nav-acadrk"  onclick="showPg('acadrk')">  <span class="ic">📋</span>ตำแหน่ง/วุฒิ สายวิชาการ</div>
+    <div class="ni"    id="nav-supprk"  onclick="showPg('supprk')">  <span class="ic">📋</span>ตำแหน่ง/วุฒิ สายสนับสนุน</div>
+    <div class="sb-grp">รายงาน</div>
+    <div class="ni" id="nav-rpt" onclick="openReport()"><span class="ic">📄</span>ออกรายงานสารสนเทศ</div>
+    <div class="sb-grp">รายชื่อบุคลากร</div>
+    <div class="ni"    id="nav-exec"    onclick="showPg('exec')">    <span class="ic">👤</span>ผู้บริหารมหาวิทยาลัย</div>
+    <div class="ni"    id="nav-lst"     onclick="showPg('lst')">     <span class="ic">📁</span>รายชื่อตามสังกัด</div>
+  </nav>
+  <footer>งานบริหารบุคคล<br>มหาวิทยาลัยราชภัฏศรีสะเกษ</footer>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<div id="main">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div class="tb-title" id="ptitle">จำแนกตามประเภทบุคลากร</div>
+    <button class="btn-prt nop" onclick="window.print()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 6 2 18 2 18 9"/>
+        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+        <rect x="6" y="14" width="12" height="8"/>
+      </svg>พิมพ์ / PDF
+    </button>
+  </div>
+
+  <div class="pw">
+
+    <!-- ── 4.1.1 จำแนกตามประเภท ── -->
+    <div class="pg on" id="pg-type">
+      <div class="stit">จำแนกตามประเภทบุคลากร</div>
+      <div id="sk-type" class="space-y-2">
+        <div class="sk h-10 w-full"></div><div class="sk h-8 w-full"></div>
+        <div class="sk h-8 w-full"></div><div class="sk h-8 w-full"></div>
+      </div>
+      <div id="ct-type" class="hidden tw">
+        <table class="dt">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:50px">ลำดับ</th>
+              <th rowspan="2">ประเภทบุคลากร</th>
+              <th colspan="2">จำนวน (คน)</th>
+              <th rowspan="2">รวม</th>
+              <th rowspan="2">หมายเหตุ (งบประมาณ)</th>
+            </tr>
+            <tr><th>สายวิชาการ</th><th>สายสนับสนุน</th></tr>
+          </thead>
+          <tbody id="tb-type"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── 4.1.2 จำนวนรวมตามสังกัด ── -->
+    <div class="pg" id="pg-ovv">
+      <div class="stit">จำนวนรวมของบุคลากรจำแนกตามสังกัด</div>
+      <div id="sk-ovv" class="space-y-2">
+        <div class="sk h-10 w-full"></div><div class="sk h-8 w-full"></div><div class="sk h-8 w-full"></div>
+      </div>
+      <div id="ct-ovv" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-4">
+          <div class="lg:col-span-2 tw">
+            <table class="dt">
+              <thead>
+                <tr>
+                  <th>ลำดับ</th><th>สังกัด</th>
+                  <th>สายวิชาการ</th><th>สายสนับสนุน</th>
+                  <th>รวม</th><th>จ้างตามภารกิจ*</th>
+                </tr>
+              </thead>
+              <tbody id="tb-ovv"></tbody>
+            </table>
+          </div>
+          <div class="chbox">
+            <div class="lbl">สัดส่วนบุคลากรตามสังกัด</div>
+            <div class="chw"><canvas id="ch-ovv"></canvas></div>
+          </div>
+        </div>
+        <div class="nb" id="note-ovv"></div>
+      </div>
+    </div>
+
+    <!-- ── 4.1.3 สายวิชาการตามสังกัด ── -->
+    <div class="pg" id="pg-acad">
+      <div class="stit">บุคลากรสายวิชาการจำแนกตามสังกัด</div>
+      <div id="sk-acad" class="space-y-2">
+        <div class="sk h-10 w-full"></div><div class="sk h-8 w-full"></div>
+      </div>
+      <div id="ct-acad" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 tw">
+            <table class="dt">
+              <thead><tr><th>ลำดับ</th><th>สังกัด</th><th>จำนวน (คน)</th><th>ร้อยละ</th><th>หมายเหตุ</th></tr></thead>
+              <tbody id="tb-acad"></tbody>
+            </table>
+          </div>
+          <div class="chbox">
+            <div class="lbl">สัดส่วนสายวิชาการตามสังกัด</div>
+            <div class="chw"><canvas id="ch-acad"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 4.1.4 สายสนับสนุนตามสังกัด ── -->
+    <div class="pg" id="pg-supp">
+      <div class="stit">บุคลากรสายสนับสนุนจำแนกตามสังกัด</div>
+      <div id="sk-supp" class="space-y-2">
+        <div class="sk h-10 w-full"></div><div class="sk h-8 w-full"></div>
+      </div>
+      <div id="ct-supp" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 tw">
+            <table class="dt">
+              <thead><tr><th>ลำดับ</th><th>สังกัด</th><th>จำนวน (คน)</th><th>ร้อยละ</th><th>หมายเหตุ</th></tr></thead>
+              <tbody id="tb-supp"></tbody>
+            </table>
+          </div>
+          <div class="chbox">
+            <div class="lbl">สัดส่วนสายสนับสนุนตามสังกัด</div>
+            <div class="chw"><canvas id="ch-supp"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 4.1.5 ตำแหน่ง/วุฒิ สายวิชาการ ── -->
+    <div class="pg" id="pg-acadrk">
+      <div class="stit">ตำแหน่งทางวิชาการและคุณวุฒิการศึกษา (สายวิชาการ)</div>
+      <div class="fw nop">
+        <span class="fl">เลือกสังกัด:</span>
+        <select class="fs" id="sel-acadrk" onchange="loadAcadRk()">
+          <option value="all">— ทั้งหมด —</option>
+        </select>
+      </div>
+      <div id="sk-acadrk" class="space-y-2">
+        <div class="sk h-8 w-full"></div><div class="sk h-8 w-full"></div>
+      </div>
+      <div id="ct-acadrk" class="hidden space-y-8">
+        <div>
+          <div class="text-sm font-semibold text-gray-600 mb-3">ตำแหน่งทางวิชาการ</div>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 tw">
+              <table class="dt">
+                <thead><tr><th>ลำดับ</th><th>ตำแหน่งทางวิชาการ</th><th>จำนวน (คน)</th><th>ร้อยละ</th><th>หมายเหตุ</th></tr></thead>
+                <tbody id="tb-acadrk"></tbody>
+              </table>
+            </div>
+            <div class="chbox">
+              <div class="lbl">สัดส่วนตำแหน่งทางวิชาการ</div>
+              <div class="chw"><canvas id="ch-acadrk"></canvas></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-gray-600 mb-3">คุณวุฒิการศึกษา (สายวิชาการ)</div>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 tw">
+              <table class="dt">
+                <thead><tr><th>ลำดับ</th><th>คุณวุฒิการศึกษา</th><th>จำนวน (คน)</th><th>ร้อยละ</th><th>หมายเหตุ</th></tr></thead>
+                <tbody id="tb-acedu"></tbody>
+              </table>
+            </div>
+            <div class="chbox">
+              <div class="lbl">สัดส่วนคุณวุฒิการศึกษา</div>
+              <div class="chw"><canvas id="ch-acedu"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 4.1.6 ตำแหน่ง/วุฒิ สายสนับสนุน ── -->
+    <div class="pg" id="pg-supprk">
+      <div class="stit">ตำแหน่งสายสนับสนุนและคุณวุฒิการศึกษา (สายสนับสนุน)</div>
+      <div class="fw nop">
+        <span class="fl">เลือกสังกัด:</span>
+        <select class="fs" id="sel-supprk" onchange="loadSuppRk()">
+          <option value="all">— ทั้งหมด —</option>
+        </select>
+      </div>
+      <div id="sk-supprk" class="space-y-2">
+        <div class="sk h-8 w-full"></div><div class="sk h-8 w-full"></div>
+      </div>
+      <div id="ct-supprk" class="hidden space-y-8">
+        <div>
+          <div class="text-sm font-semibold text-gray-600 mb-3">ตำแหน่งสายสนับสนุน</div>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 tw">
+              <table class="dt">
+                <thead><tr><th>ลำดับ</th><th>ตำแหน่งสายสนับสนุน</th><th>จำนวน (คน)</th><th>ร้อยละ</th><th>หมายเหตุ</th></tr></thead>
+                <tbody id="tb-supprk"></tbody>
+              </table>
+            </div>
+            <div class="chbox">
+              <div class="lbl">สัดส่วนตำแหน่งสายสนับสนุน</div>
+              <div class="chw"><canvas id="ch-supprk"></canvas></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-gray-600 mb-3">คุณวุฒิการศึกษา (สายสนับสนุน)</div>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 tw">
+              <table class="dt">
+                <thead><tr><th>ลำดับ</th><th>คุณวุฒิการศึกษา</th><th>จำนวน (คน)</th><th>ร้อยละ</th><th>หมายเหตุ</th></tr></thead>
+                <tbody id="tb-suppedu"></tbody>
+              </table>
+            </div>
+            <div class="chbox">
+              <div class="lbl">สัดส่วนคุณวุฒิการศึกษา</div>
+              <div class="chw"><canvas id="ch-suppedu"></canvas></div>
+            </div>
+          </div>
+        </div>
+        <div class="nb" id="note-supprk"></div>
+      </div>
+    </div>
+
+    <!-- ── 4.2.1 ผู้บริหาร ── -->
+    <div class="pg" id="pg-exec">
+      <div class="stit">ผู้บริหารมหาวิทยาลัยราชภัฏศรีสะเกษ</div>
+      <div id="sk-exec" class="space-y-2">
+        <div class="sk h-8 w-full"></div><div class="sk h-8 w-full"></div><div class="sk h-8 w-full"></div>
+      </div>
+      <div id="ct-exec" class="hidden">
+        <div class="exhd">
+          <h2>รายชื่อผู้บริหารมหาวิทยาลัยราชภัฏศรีสะเกษ</h2>
+          <p>มหาวิทยาลัยราชภัฏศรีสะเกษ</p>
+        </div>
+        <div class="tw" style="border-radius:0 0 9px 9px;">
+          <table class="dt">
+            <thead><tr><th style="width:60px">ลำดับ</th><th>ชื่อ – สกุล</th><th>ตำแหน่ง</th></tr></thead>
+            <tbody id="tb-exec"></tbody>
+          </table>
+        </div>
+        <div class="pd" id="pd-exec"></div>
+      </div>
+    </div>
+
+    <!-- ── 4.2 รายชื่อตามสังกัด ── -->
+    <div class="pg" id="pg-lst">
+      <div class="stit">รายชื่อบุคลากรจำแนกตามสังกัด</div>
+
+      <div class="fw nop">
+        <span class="fl">เลือกสังกัด / หน่วยงาน:</span>
+        <select class="fs" id="sel-lst" onchange="loadLst()">
+          <option value="all">— ทั้งหมด —</option>
+        </select>
+      </div>
+
+      <div id="sk-lst" class="space-y-2">
+        <div class="sk h-8 w-full"></div>
+        <div class="sk h-8 w-full"></div>
+        <div class="sk h-8 w-full"></div>
+      </div>
+
+      <div id="ct-lst"></div>
+
+      <div class="pd" id="pd-lst"></div>
+    </div>
+
+  </div><!-- /pw -->
+
+  <div class="nop" style="background:linear-gradient(90deg,var(--prid),var(--pri));color:rgba(255,255,255,.7);text-align:center;padding:13px;font-size:13px;">
+    งานบริหารบุคคล &nbsp;|&nbsp; มหาวิทยาลัยราชภัฏศรีสะเกษ
+  </div>
+</div>
+
+<script>
+// ─── API Helper (แทน google.script.run) ──────────────────────────
+// เรียก Netlify Function ที่ /api?action=xxx&filter=yyy
+async function callAPI(action, filter) {
+  let url = `/api?action=${encodeURIComponent(action)}`;
+  if (filter !== undefined) url += `&filter=${encodeURIComponent(filter)}`;
+  const res  = await fetch(url);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'เกิดข้อผิดพลาดจาก API');
+  return json.data;
 }
 
-// ------------------------------------------------------------------
-// getAllData
-// Index: A=0 B=1 C=2 D=3 E=4 F=5 G=6 H=7 I=8 J=9 K=10 L=11 M=12 N=13 O=14 P=15
-// ------------------------------------------------------------------
-function getAllData() {
-  try {
-    const ss    = SpreadsheetApp.openById(SHEET_ID);
-    const sheet = ss.getSheetByName(SHEET_NAME);
-    const last  = sheet.getLastRow();
-    if (last < 2) return [];
+function apiRun(action, filter, onSuccess, onFailure) {
+  callAPI(action, filter)
+    .then(onSuccess)
+    .catch(onFailure || (e => Swal.fire({ icon:'error', title:'เกิดข้อผิดพลาด', text: e.message })));
+}
 
-    const vals = sheet.getRange(2, 1, last - 1, 16).getValues();
-    return vals.map((r, i) => ({
-      rowNum      : i + 2,
-      prefix      : String(r[1]  || '').trim(),   // B คำนำหน้า
-      firstName   : String(r[2]  || '').trim(),   // C ชื่อ
-      middleName  : String(r[3]  || '').trim(),   // D ชื่อกลาง
-      lastName    : String(r[4]  || '').trim(),   // E นามสกุล
-      education   : String(r[6]  || '').trim(),   // G คุณวุฒิ
-      academicPos : String(r[7]  || '').trim(),   // H ตำแหน่งทางวิชาการ / ชื่อตำแหน่ง
-      adminPos    : String(r[8]  || '').trim(),   // I ตำแหน่งบริหาร
-      supportLevel: String(r[9]  || '').trim(),   // J ระดับสายสนับสนุน
-      subUnit     : String(r[10] || '').trim(),   // K หน่วยงานย่อย
-      employeeType: String(r[11] || '').trim(),   // L ประเภทบุคลากร
-      budget      : String(r[12] || '').trim(),   // M งบประมาณ
-      branch      : String(r[13] || '').trim(),   // N สาขาวิชา / หน่วยงาน
-      faculty     : String(r[14] || '').trim(),   // O สังกัด (คณะ/สำนัก)
-      staffLine   : String(r[15] || '').trim(),   // P สายงาน
-    })).filter(r => r.firstName !== '');
+// ─── Colors ──────────────────────────────────────────────────────
+const CLR=['#1b3d6f','#2a5cad','#c9a53b','#3b82f6','#10b981','#f59e0b','#ef4444',
+           '#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899','#6366f1','#14b8a6','#64748b'];
+const _ch={};
+function kch(id){if(_ch[id]){_ch[id].destroy();delete _ch[id];}}
+function pie(id,lbs,vs){
+  kch(id);
+  const c=document.getElementById(id); if(!c)return;
+  const tot=vs.reduce((a,b)=>a+b,0);
+  _ch[id]=new Chart(c,{
+    type:'doughnut',
+    data:{labels:lbs,datasets:[{data:vs,backgroundColor:CLR.slice(0,vs.length),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,plugins:{
+      legend:{position:'bottom',labels:{font:{family:'Sarabun',size:11},padding:8}},
+      tooltip:{callbacks:{label:x=>` ${x.label}: ${x.raw} คน (${tot>0?((x.raw/tot)*100).toFixed(1):0}%)`}}
+    }}
+  });
+}
 
-  } catch (err) {
-    Logger.log('getAllData: ' + err);
-    throw new Error('ดึงข้อมูลไม่ได้: ' + err.message);
+// ─── Nav ─────────────────────────────────────────────────────────
+const PT={
+  type:'จำแนกตามประเภทบุคลากร',
+  ovv:'จำนวนรวมของบุคลากรจำแนกตามสังกัด',
+  acad:'บุคลากรสายวิชาการจำแนกตามสังกัด',
+  supp:'บุคลากรสายสนับสนุนจำแนกตามสังกัด',
+  acadrk:'ตำแหน่งทางวิชาการและคุณวุฒิ (สายวิชาการ)',
+  supprk:'ตำแหน่งสายสนับสนุนและคุณวุฒิ (สายสนับสนุน)',
+  exec:'ผู้บริหารมหาวิทยาลัยราชภัฏศรีสะเกษ',
+  lst:'รายชื่อบุคลากรจำแนกตามสังกัด',
+};
+const _ld={};
+const LOADERS={type:doType,ovv:doOvv,acad:doAcad,supp:doSupp,acadrk:initAcadRk,supprk:initSuppRk,exec:doExec,lst:initLst};
+
+function showPg(n){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('on'));
+  document.getElementById('pg-'+n).classList.add('on');
+  document.getElementById('nav-'+n).classList.add('on');
+  document.getElementById('ptitle').textContent=PT[n]||'';
+  if(!_ld[n]){_ld[n]=1;(LOADERS[n]||function(){})();}
+}
+
+// ─── Skeleton helpers ─────────────────────────────────────────────
+function ss(id){document.getElementById('sk-'+id).style.display='';}
+function hs(id){document.getElementById('sk-'+id).style.display='none';}
+function sc(id){document.getElementById('ct-'+id).classList.remove('hidden');}
+function hc(id){document.getElementById('ct-'+id).classList.add('hidden');}
+function nc(v){return `<td class="tc">${v>0?v:'-'}</td>`;}
+function pp(c,t){return t>0?((c/t)*100).toFixed(2)+'%':'0.00%';}
+
+// ─── 4.1.1 ───────────────────────────────────────────────────────
+function doType(){
+  ss('type');
+  apiRun('getPersonnelByType', undefined, function(rows){
+    hs('type');sc('type');
+    let h='',tA=0,tS=0,seq=1;
+    rows.forEach(r=>{
+      const a=r.academic||0,s=r.support||0,t=a+s;
+      tA+=a;tS+=s;
+      h+=`<tr><td class="tc">${seq++}</td><td>${r.type}</td>${nc(a)}${nc(s)}<td class="tc font-semibold">${t||'-'}</td><td class="text-gray-500 text-xs">${r.budget||'-'}</td></tr>`;
+    });
+    h+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tA}</td><td class="tc">${tS}</td><td class="tc">${tA+tS}</td><td></td></tr>`;
+    document.getElementById('tb-type').innerHTML=h;
+  });
+}
+
+// ─── 4.1.2 ───────────────────────────────────────────────────────
+function doOvv(){
+  ss('ovv');
+  apiRun('getPersonnelByFaculty', undefined, function(res){
+    hs('ovv');sc('ovv');
+    const rows=res.rows||[],sec=res.secondedCount||0;
+    let h='',tA=0,tS=0,tM=0;const lb=[],vs=[];
+    rows.forEach((r,i)=>{
+      const t=(r.academic||0)+(r.support||0);
+      tA+=r.academic||0;tS+=r.support||0;tM+=r.mission||0;
+      lb.push(r.faculty);vs.push(t);
+      h+=`<tr><td class="tc">${i+1}</td><td>${r.faculty}</td>${nc(r.academic)}${nc(r.support)}<td class="tc font-semibold">${t}</td><td class="tc text-orange-600">${r.mission>0?r.mission:'-'}</td></tr>`;
+    });
+    h+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tA}</td><td class="tc">${tS}</td><td class="tc">${tA+tS}</td><td class="tc">${tM}</td></tr>`;
+    document.getElementById('tb-ovv').innerHTML=h;
+    document.getElementById('note-ovv').innerHTML=
+      `* คอลัมน์ "จ้างตามภารกิจ" แสดงจำนวนพนักงานจ้างตามภารกิจในแต่ละสังกัด<br>
+       &nbsp;&nbsp;บุคลากรสายวิชาการ ไม่นับรวมข้าราชการช่วยราชการ จำนวน <strong>${sec}</strong> คน`;
+    pie('ch-ovv',lb,vs);
+  });
+}
+
+// ─── 4.1.3 ───────────────────────────────────────────────────────
+function doAcad(){
+  ss('acad');
+  apiRun('getAcademicByFaculty', undefined, function(rows){
+    hs('acad');sc('acad');
+    const tot=rows.reduce((s,r)=>s+(r.count||0),0);
+    let h='';const lb=[],vs=[];
+    rows.forEach((r,i)=>{lb.push(r.faculty);vs.push(r.count);
+      h+=`<tr><td class="tc">${i+1}</td><td>${r.faculty}</td><td class="tc">${r.count}</td><td class="tc">${pp(r.count,tot)}</td><td></td></tr>`;
+    });
+    h+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tot}</td><td class="tc">100.00%</td><td></td></tr>`;
+    document.getElementById('tb-acad').innerHTML=h;
+    pie('ch-acad',lb,vs);
+  });
+}
+
+// ─── 4.1.4 ───────────────────────────────────────────────────────
+function doSupp(){
+  ss('supp');
+  apiRun('getSupportByFaculty', undefined, function(rows){
+    hs('supp');sc('supp');
+    const tot=rows.reduce((s,r)=>s+(r.count||0),0);
+    let h='';const lb=[],vs=[];
+    rows.forEach((r,i)=>{lb.push(r.faculty);vs.push(r.count);
+      h+=`<tr><td class="tc">${i+1}</td><td>${r.faculty}</td><td class="tc">${r.count}</td><td class="tc">${pp(r.count,tot)}</td><td></td></tr>`;
+    });
+    h+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tot}</td><td class="tc">100.00%</td><td></td></tr>`;
+    document.getElementById('tb-supp').innerHTML=h;
+    pie('ch-supp',lb,vs);
+  });
+}
+
+// ─── 4.1.5 init ──────────────────────────────────────────────────
+function initAcadRk(){
+  apiRun('getAcademicRankAndEducation', 'all', function(r){
+    fillSel('sel-acadrk',r.faculties||[]);
+    renderAcadRk(r);
+  });
+}
+function loadAcadRk(){
+  const f=document.getElementById('sel-acadrk').value;
+  ss('acadrk');hc('acadrk');
+  apiRun('getAcademicRankAndEducation', f, renderAcadRk,
+    e=>{hs('acadrk');Swal.fire({icon:'error',title:'ผิดพลาด',text:e.message});});
+}
+function renderAcadRk(r){
+  hs('acadrk');sc('acadrk');
+  mkCntTbl('tb-acadrk','ch-acadrk',r.rankCounts,['ศาสตราจารย์','รองศาสตราจารย์','ผู้ช่วยศาสตราจารย์','อาจารย์']);
+  mkCntTbl('tb-acedu','ch-acedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี']);
+}
+
+// ─── 4.1.6 init ──────────────────────────────────────────────────
+function initSuppRk(){
+  apiRun('getSupportRankAndEducation', 'all', function(r){
+    fillSel('sel-supprk',r.faculties||[]);
+    renderSuppRk(r);
+  });
+}
+function loadSuppRk(){
+  const f=document.getElementById('sel-supprk').value;
+  ss('supprk');hc('supprk');
+  apiRun('getSupportRankAndEducation', f, renderSuppRk,
+    e=>{hs('supprk');Swal.fire({icon:'error',title:'ผิดพลาด',text:e.message});});
+}
+function renderSuppRk(r){
+  hs('supprk');sc('supprk');
+  mkCntTbl('tb-supprk','ch-supprk',r.rankCounts,['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน']);
+  mkCntTbl('tb-suppedu','ch-suppedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี']);
+  document.getElementById('note-supprk').textContent=
+    'บุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่งสูงขึ้นสายสนับสนุน จำนวน '+(r.noRankCount||0)+' คน';
+}
+
+function mkCntTbl(tid,cid,counts,order){
+  const tot=order.reduce((s,k)=>s+(counts[k]||0),0);
+  const lb=[],vs=[];let h='';
+  order.forEach((k,i)=>{
+    const c=counts[k]||0;
+    if(c>0){lb.push(k);vs.push(c);}
+    h+=`<tr><td class="tc">${i+1}</td><td>${k}</td><td class="tc">${c}</td><td class="tc">${pp(c,tot)}</td><td></td></tr>`;
+  });
+  h+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tot}</td><td class="tc">100.00%</td><td></td></tr>`;
+  document.getElementById(tid).innerHTML=h;
+  pie(cid,lb,vs);
+}
+
+// ─── 4.2.1 ผู้บริหาร ─────────────────────────────────────────────
+function doExec(){
+  ss('exec');
+  apiRun('getExecutives', undefined, function(rows){
+    hs('exec');sc('exec');
+    let h='';
+    rows.forEach((r,i)=>{h+=`<tr><td class="tc">${i+1}</td><td>${r.fullName}</td><td>${r.position}</td></tr>`;});
+    document.getElementById('tb-exec').innerHTML=h||'<tr><td colspan="3" class="tc text-gray-400 py-6">ไม่พบข้อมูล</td></tr>';
+    document.getElementById('pd-exec').textContent='ข้อมูล ณ วันที่ '+thaiDate();
+  }, e=>{hs('exec');Swal.fire({icon:'error',title:'เกิดข้อผิดพลาด',text:e.message});});
+}
+
+// ─── 4.2 init ────────────────────────────────────────────────────
+let _lstFacData={}, _lstFacKeys=[];
+let _lstUnitData={}, _lstUnitKeys=[];
+
+function initLst(){
+  ss('lst');
+  let facDone=false, unitDone=false;
+
+  function tryRender(){
+    if(!facDone||!unitDone) return;
+    const sel=document.getElementById('sel-lst');
+    while(sel.options.length>1) sel.remove(1);
+    if(_lstFacKeys.length){
+      const og=document.createElement('optgroup'); og.label='คณะ / วิทยาลัย';
+      _lstFacKeys.forEach(v=>{const o=document.createElement('option');o.value='fac:'+v;o.textContent=v;og.appendChild(o);});
+      sel.appendChild(og);
+    }
+    if(_lstUnitKeys.length){
+      const og=document.createElement('optgroup'); og.label='สำนัก / สถาบัน';
+      _lstUnitKeys.forEach(v=>{const o=document.createElement('option');o.value='unit:'+v;o.textContent=v;og.appendChild(o);});
+      sel.appendChild(og);
+    }
+    hs('lst');
+    renderAll('all');
   }
+
+  apiRun('getPersonnelByFacultyList', 'all', function(res){
+    _lstFacData = res.facResult  || {};
+    _lstFacKeys = res.facUnits   || [];
+    facDone=true; tryRender();
+  }, e=>{hs('lst');Swal.fire({icon:'error',title:'ผิดพลาด',text:e.message});});
+
+  apiRun('getPersonnelByUnitList', 'all', function(res){
+    _lstUnitData = res.unitResult || {};
+    _lstUnitKeys = res.otherUnits || [];
+    unitDone=true; tryRender();
+  }, e=>{hs('lst');Swal.fire({icon:'error',title:'ผิดพลาด',text:e.message});});
 }
 
-// ------------------------------------------------------------------
-// unitKey: ถ้า K (subUnit) ว่าง → ใช้ O (faculty) แทน
-// ------------------------------------------------------------------
-function unitKey(r) {
-  return r.subUnit || r.faculty || 'ไม่ระบุ';
+function loadLst(){
+  const v=document.getElementById('sel-lst').value;
+  renderAll(v);
 }
 
-// ------------------------------------------------------------------
-// isFacUnit: ขึ้นต้นด้วย "คณะ" หรือ "วิทยาลัย"
-// isOtherUnit: ขึ้นต้นด้วย "สำนัก" หรือ "สถาบัน" เท่านั้น
-// ------------------------------------------------------------------
-function isFacUnit(u) {
-  return u.startsWith('คณะ') || u.startsWith('วิทยาลัย');
-}
-function isOtherUnit(u) {
-  return u.startsWith('สำนัก') || u.startsWith('สถาบัน');
-}
-
-// ------------------------------------------------------------------
-// 4.1.1  จำแนกตามประเภทบุคลากร (L + M)
-// ------------------------------------------------------------------
-function getPersonnelByType() {
-  const data = getAllData();
-  const map  = {};
-  data.forEach(r => {
-    const key = r.employeeType + '|||' + r.budget;
-    if (!map[key]) map[key] = { type: r.employeeType, budget: r.budget, academic: 0, support: 0 };
-    if (isAcademic(r.staffLine)) map[key].academic++;
-    if (isSupport(r.staffLine))  map[key].support++;
-  });
-
-  const typeOrder = ['ข้าราชการ','ข้าราชการช่วยราชการ','พนักงานราชการ','เต็มเวลาถาวร','เต็มเวลาสัญญาจ้าง','จ้างตามภารกิจ'];
-  return Object.values(map).sort((a, b) => {
-    const ai = typeOrder.findIndex(t => a.type.includes(t));
-    const bi = typeOrder.findIndex(t => b.type.includes(t));
-    const td = (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
-    if (td !== 0) return td;
-    if (a.type === b.type) {
-      return (a.budget.includes('แผ่นดิน') ? 0 : 1) - (b.budget.includes('แผ่นดิน') ? 0 : 1);
-    }
-    return 0;
-  });
+function renderAll(filter){
+  const wrap=document.getElementById('ct-lst');
+  let h='';
+  if(filter==='all'){
+    _lstFacKeys.forEach(k=> h+=buildFacBlock(k, _lstFacData[k]||[]));
+    _lstUnitKeys.forEach(k=> h+=buildUnitBlock(k, _lstUnitData[k]||[]));
+  } else if(filter.startsWith('fac:')){
+    const k=filter.slice(4);
+    h=buildFacBlock(k, _lstFacData[k]||[]);
+  } else if(filter.startsWith('unit:')){
+    const k=filter.slice(5);
+    h=buildUnitBlock(k, _lstUnitData[k]||[]);
+  }
+  wrap.innerHTML=h||'<div class="text-gray-400 text-center py-8">ไม่พบข้อมูล</div>';
+  document.getElementById('pd-lst').textContent='ข้อมูล ณ วันที่ '+thaiDate();
 }
 
-// ------------------------------------------------------------------
-// 4.1.2  จำนวนรวมตามสังกัด (ไม่นับช่วยราชการ)
-// ------------------------------------------------------------------
-function getPersonnelByFaculty() {
-  const data          = getAllData();
-  const secondedCount = data.filter(r => r.employeeType.includes('ช่วยราชการ')).length;
-  const map           = {};
-
-  data.forEach(r => {
-    if (r.employeeType.includes('ช่วยราชการ')) return;
-    const fac = r.faculty || 'ไม่ระบุ';
-    if (!map[fac]) map[fac] = { faculty: fac, academic: 0, support: 0, mission: 0 };
-    if (isAcademic(r.staffLine)) map[fac].academic++;
-    if (isSupport(r.staffLine)) {
-      map[fac].support++;
-      if (r.employeeType.includes('จ้างตามภารกิจ')) map[fac].mission++;
+function buildFacBlock(facName, sections){
+  let rows=[];
+  sections.forEach(sec=>{
+    if(sec.isDean){
+      sec.members.forEach(m=> rows.push({type:'dean', m}));
+    } else {
+      rows.push({type:'branch-hdr', label: sec.label});
+      const sorted=[
+        ...sec.members.filter(m=> m.adminPos && m.adminPos.includes('ประธาน')),
+        ...sec.members.filter(m=> !m.adminPos || !m.adminPos.includes('ประธาน')),
+      ];
+      sorted.forEach(m=> rows.push({type:'member', m}));
     }
   });
-  return { rows: Object.values(map), secondedCount };
+  if(!rows.length) return '';
+  let h=`<div class="mb-8">
+    <div class="fhdr">${facName}</div>
+    <div class="tw">
+    <table class="dt">
+      <thead><tr>
+        <th style="width:50px">ลำดับ</th>
+        <th>ชื่อ – สกุล</th>
+        <th>ตำแหน่ง</th>
+        <th>ตำแหน่งบริหาร</th>
+      </tr></thead>
+      <tbody>`;
+  let seq=1;
+  rows.forEach(row=>{
+    if(row.type==='branch-hdr'){
+      h+=`<tr><td colspan="4" style="background:#dbeafe;color:#1e3a8a;font-weight:600;padding:6px 13px;font-size:13px;">
+            <span style="display:inline-block;width:4px;height:13px;background:#c9a53b;border-radius:2px;margin-right:7px;vertical-align:middle;"></span>
+            ${row.label}
+          </td></tr>`;
+    } else if(row.type==='dean'){
+      const m=row.m;
+      h+=`<tr style="background:#fef3c7;font-weight:600;">
+            <td class="tc">${seq++}</td>
+            <td>${m.fullName}</td>
+            <td>${m.position||'-'}</td>
+            <td>${m.adminPos||'-'}</td>
+          </tr>`;
+    } else {
+      const m=row.m;
+      const isChair = m.adminPos && m.adminPos.includes('ประธาน');
+      const style   = isChair ? 'style="background:#f0fdf4;font-weight:600;"' : '';
+      h+=`<tr ${style}>
+            <td class="tc">${seq++}</td>
+            <td>${m.fullName}</td>
+            <td>${m.position||'-'}</td>
+            <td>${m.adminPos||'-'}</td>
+          </tr>`;
+    }
+  });
+  h+=`</tbody></table></div></div>`;
+  return h;
 }
 
-// ------------------------------------------------------------------
-// 4.1.3  สายวิชาการตามสังกัด
-// ------------------------------------------------------------------
-function getAcademicByFaculty() {
-  const data = getAllData();
-  const map  = {};
-  data.forEach(r => {
-    if (!isAcademic(r.staffLine)) return;
-    const fac = r.faculty || 'ไม่ระบุ';
-    if (!map[fac]) map[fac] = { faculty: fac, count: 0 };
-    map[fac].count++;
+function buildUnitBlock(unitName, sections){
+  if(!sections || !sections.length) return '';
+  let rows=[];
+  sections.forEach(sec=>{
+    if(sec.isDean){
+      sec.members.forEach(m=> rows.push({type:'dean', m}));
+    } else {
+      rows.push({type:'branch-hdr', label: sec.label});
+      const sorted=[
+        ...sec.members.filter(m=> m.adminPos && (m.adminPos.includes('ประธาน') || m.adminPos.includes('หัวหน้า'))),
+        ...sec.members.filter(m=> !m.adminPos || (!m.adminPos.includes('ประธาน') && !m.adminPos.includes('หัวหน้า'))),
+      ];
+      sorted.forEach(m=> rows.push({type:'member', m}));
+    }
   });
-  return Object.values(map);
+  if(!rows.length) return '';
+  let h=`<div class="mb-8">
+    <div class="fhdr uhdr">${unitName}</div>
+    <div class="tw">
+    <table class="dt">
+      <thead><tr>
+        <th style="width:50px">ลำดับ</th>
+        <th>ชื่อ – สกุล</th>
+        <th>ตำแหน่ง</th>
+        <th>ตำแหน่งบริหาร</th>
+      </tr></thead>
+      <tbody>`;
+  let seq=1;
+  rows.forEach(row=>{
+    if(row.type==='branch-hdr'){
+      h+=`<tr><td colspan="4" style="background:#e0f2fe;color:#0c4a6e;font-weight:600;padding:6px 13px;font-size:13px;">
+            <span style="display:inline-block;width:4px;height:13px;background:#c9a53b;border-radius:2px;margin-right:7px;vertical-align:middle;"></span>
+            ${row.label}
+          </td></tr>`;
+    } else if(row.type==='dean'){
+      const m=row.m;
+      h+=`<tr style="background:#fef3c7;font-weight:600;">
+            <td class="tc">${seq++}</td>
+            <td>${m.fullName}</td>
+            <td>${m.position||'-'}</td>
+            <td>${m.adminPos||'-'}</td>
+          </tr>`;
+    } else {
+      const m=row.m;
+      const isHead = m.adminPos && (m.adminPos.includes('ประธาน') || m.adminPos.includes('หัวหน้า'));
+      const style  = isHead ? 'style="background:#f0fdf4;font-weight:600;"' : '';
+      h+=`<tr ${style}>
+            <td class="tc">${seq++}</td>
+            <td>${m.fullName}</td>
+            <td>${m.position||'-'}</td>
+            <td>${m.adminPos||'-'}</td>
+          </tr>`;
+    }
+  });
+  h+=`</tbody></table></div></div>`;
+  return h;
 }
 
-// ------------------------------------------------------------------
-// 4.1.4  สายสนับสนุนตามสังกัด
-// ------------------------------------------------------------------
-function getSupportByFaculty() {
-  const data = getAllData();
-  const map  = {};
-  data.forEach(r => {
-    if (!isSupport(r.staffLine)) return;
-    const fac = r.faculty || 'ไม่ระบุ';
-    if (!map[fac]) map[fac] = { faculty: fac, count: 0 };
-    map[fac].count++;
-  });
-  return Object.values(map);
+// ─── Utils ────────────────────────────────────────────────────────
+function fillSel(id,opts){
+  const s=document.getElementById(id);
+  while(s.options.length>1)s.remove(1);
+  opts.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});
+}
+function thaiDate(){
+  const d=new Date();
+  const m=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+           'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  return `${d.getDate()} ${m[d.getMonth()]} พ.ศ. ${d.getFullYear()+543}`;
 }
 
-// ------------------------------------------------------------------
-// 4.1.5  ตำแหน่งทางวิชาการ + คุณวุฒิ (สายวิชาการ)
-// ------------------------------------------------------------------
-function getAcademicRankAndEducation(facultyFilter) {
-  const data     = getAllData();
-  const filtered = data.filter(r =>
-    isAcademic(r.staffLine) &&
-    (facultyFilter === 'all' || r.faculty === facultyFilter)
-  );
+<!-- ══ REPORT MODAL ══ -->
+<div id="rpt-overlay" onclick="rptCloseOutside(event)">
+  <div id="rpt-box">
+    <div id="rpt-head">
+      <h2>📄 รายงานสารสนเทศบุคลากร มหาวิทยาลัยราชภัฏศรีสะเกษ</h2>
+      <div id="rpt-head-btns">
+        <button onclick="printReport()">🖨️ พิมพ์ / PDF</button>
+        <button onclick="closeReport()">✕ ปิด</button>
+      </div>
+    </div>
+    <div id="rpt-body">
+      <div id="rpt-loading">⏳ กำลังโหลดข้อมูลทั้งหมด กรุณารอสักครู่...</div>
+      <div id="rpt-content"></div>
+    </div>
+    <div id="rpt-footer">
+      <span>งานบริหารบุคคล | มหาวิทยาลัยราชภัฏศรีสะเกษ</span>
+      <span id="rpt-foot-date"></span>
+    </div>
+  </div>
+</div>
 
-  const rankOrder  = ['ศาสตราจารย์','รองศาสตราจารย์','ผู้ช่วยศาสตราจารย์','อาจารย์'];
-  const rankCounts = {};
-  rankOrder.forEach(k => rankCounts[k] = 0);
-  filtered.forEach(r => {
-    const k = rankOrder.find(x => r.academicPos === x) ||
-              rankOrder.find(x => r.academicPos.includes(x));
-    if (k) rankCounts[k]++;
-  });
-
-  const eduOrder  = ['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี'];
-  const eduCounts = {};
-  eduOrder.forEach(k => eduCounts[k] = 0);
-  filtered.forEach(r => {
-    eduCounts[eduOrder.find(k => r.education.includes(k)) || 'ต่ำกว่าปริญญาตรี']++;
-  });
-
-  return { rankCounts, eduCounts, faculties: uniqueFaculties(data) };
-}
-
-// ------------------------------------------------------------------
-// 4.1.6  ตำแหน่งสายสนับสนุน + คุณวุฒิ
-// ------------------------------------------------------------------
-function getSupportRankAndEducation(facultyFilter) {
-  const data     = getAllData();
-  const filtered = data.filter(r =>
-    isSupport(r.staffLine) &&
-    (facultyFilter === 'all' || r.faculty === facultyFilter)
-  );
-
-  const rankOrder  = ['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน'];
-  const rankCounts = {};
-  rankOrder.forEach(k => rankCounts[k] = 0);
-  let noRankCount  = 0;
-  filtered.forEach(r => {
-    const k = rankOrder.find(x => r.supportLevel.includes(x));
-    if (k) rankCounts[k]++;
-    else   noRankCount++;
-  });
-
-  const eduOrder  = ['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี'];
-  const eduCounts = {};
-  eduOrder.forEach(k => eduCounts[k] = 0);
-  filtered.forEach(r => {
-    eduCounts[eduOrder.find(k => r.education.includes(k)) || 'ต่ำกว่าปริญญาตรี']++;
-  });
-
-  return { rankCounts, eduCounts, noRankCount, faculties: uniqueFaculties(data) };
-}
-
-// ------------------------------------------------------------------
-// 4.2.1  ผู้บริหารมหาวิทยาลัย
-// ------------------------------------------------------------------
-function getExecutives() {
-  const data      = getAllData();
-  const execRoles = ['อธิการบดี','ที่ปรึกษาอธิการบดี','รองอธิการบดี','ผู้ช่วยอธิการบดี'];
-  const roleOrder = { 'อธิการบดี':1,'ที่ปรึกษาอธิการบดี':2,'รองอธิการบดี':3,'ผู้ช่วยอธิการบดี':4 };
-
-  return data
-    .filter(r => execRoles.some(role => r.adminPos === role || r.adminPos.startsWith(role)))
-    .sort((a, b) => {
-      const aR = execRoles.find(role => a.adminPos.startsWith(role)) || '';
-      const bR = execRoles.find(role => b.adminPos.startsWith(role)) || '';
-      return (roleOrder[aR] || 99) - (roleOrder[bR] || 99);
-    })
-    .map(r => ({ fullName: buildExecName(r), position: r.adminPos }));
-}
-
-// ------------------------------------------------------------------
-// getAllBySubUnit — core function จัดกลุ่มตาม unitKey(r)
-// facUnits   = ขึ้นต้นด้วย "คณะ" หรือ "วิทยาลัย"
-// otherUnits = ขึ้นต้นด้วย "สำนัก" หรือ "สถาบัน" เท่านั้น
-// ------------------------------------------------------------------
-
-// ลำดับคณะ/วิทยาลัยที่ต้องการ
-const FAC_ORDER = [
+<script>
+// ══════════════════════════════════════════════════════════════════
+// REPORT ENGINE
+// ══════════════════════════════════════════════════════════════════
+const FAC_LIST=[
   'คณะศิลปศาสตร์และวิทยาศาสตร์',
   'คณะครุศาสตร์และการพัฒนามนุษย์',
   'คณะมนุษยศาสตร์และสังคมศาสตร์',
@@ -238,9 +873,13 @@ const FAC_ORDER = [
   'วิทยาลัยกฎหมายและการปกครอง',
   'คณะพยาบาลศาสตร์',
 ];
-
-// ลำดับสำนัก/สถาบันที่ต้องการ
-const UNIT_ORDER = [
+const SUPP_UNIT_LIST=[
+  'คณะศิลปศาสตร์และวิทยาศาสตร์',
+  'คณะครุศาสตร์และการพัฒนามนุษย์',
+  'คณะมนุษยศาสตร์และสังคมศาสตร์',
+  'คณะบริหารธุรกิจและการบัญชี',
+  'วิทยาลัยกฎหมายและการปกครอง',
+  'คณะพยาบาลศาสตร์',
   'สำนักงานอธิการบดี',
   'สำนักส่งเสริมวิชาการและจัดการเรียนรู้ตลอดชีวิต',
   'สำนักวิทยบริการและเทคโนโลยีสารสนเทศ',
@@ -248,253 +887,197 @@ const UNIT_ORDER = [
   'สถาบันวิจัยและพัฒนา',
 ];
 
-// ลำดับหน่วยงานย่อยภายในสำนักงานอธิการบดี
-const RECTOR_BRANCH_ORDER = [
-  'งานบริหารทั่วไป (ฝ่ายธุรการและงานสารบรรณ)',
-  'งานบริหารทั่วไป (ฝ่ายประชุมและพิธีการ)',
-  'งานคลัง',
-  'งานพัสดุ',
-  'งานบริหารบุคคล',
-  'งานประชาสัมพันธ์ (ฝ่ายประชาสัมพันธ์)',
-  'งานประชาสัมพันธ์ (ฝ่ายเอกสารการพิมพ์)',
-  'งานประชาสัมพันธ์ (ฝ่ายโสตทัศนูปกรณ์)',
-  'งานพัฒนานักศึกษา',
-  'งานอาคารสถานที่ (ฝ่ายยานพาหนะ)',
-  'งานอาคารสถานที่ (ฝ่ายภูมิทัศน์)',
-  'งานอาคารสถานที่ (ฝ่ายอาคารสถานที่)',
-  'งานอาคารฯ (ฝ่ายวินัยจราจรและรักษาความปลอดภัย)',
-  'หน่วยตรวจสอบภายใน',
-  'สำนักงานสภามหาวิทยาลัย',
-  'กองนโยบายและแผน (ส่วนงานแผน)',
-  'กองนโยบายและแผน (งานวิเทศสัมพันธ์)',
-  'กองนโยบายและแผน (งานออกแบบและวางผัง)',
-  'หน่วยมาตรฐานและประกันคุณภาพ',
-  'พนักงานรักษาความสะอาด',
-  'คนสวน',
-];
+let _rptCharts=[];
 
-// helper: เรียงตาม custom list ก่อน ที่เหลือเรียงตัวอักษรท้าย
-function sortByCustomOrder(arr, orderList) {
-  return arr.slice().sort((a, b) => {
-    const ai = orderList.indexOf(a);
-    const bi = orderList.indexOf(b);
-    if (ai !== -1 && bi !== -1) return ai - bi;
-    if (ai !== -1) return -1;
-    if (bi !== -1) return 1;
-    return a.localeCompare(b, 'th');
+// ── helpers ─────────────────────────────────────────────────────
+function rptPage(pgNo,title,body){
+  return `<div class="rpt-page">
+    <div class="rpt-pg-hd">
+      <div class="pg-title">${title}</div>
+      <div class="pg-no">หน้าที่ ${pgNo} / 23</div>
+    </div>
+    <div class="rpt-univ">มหาวิทยาลัยราชภัฏศรีสะเกษ &nbsp;|&nbsp; ข้อมูล ณ วันที่ ${thaiDate()}</div>
+    ${body}
+  </div>`;
+}
+function rptTbl(headers,rows){
+  return `<div class="tw"><table class="dt">
+    <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+function rptWithChart(tblHtml,cid){
+  return `<div class="rpt-chart-row">
+    <div class="rpt-tbl">${tblHtml}</div>
+    <div class="rpt-ch"><canvas id="${cid}" width="200" height="200"></canvas></div>
+  </div>`;
+}
+function rptCountRows(counts,order){
+  const tot=order.reduce((s,k)=>s+(counts[k]||0),0);
+  const lb=[],vs=[];let rows='';
+  order.forEach((k,i)=>{
+    const c=counts[k]||0;
+    if(c>0){lb.push(k);vs.push(c);}
+    rows+=`<tr><td class="tc">${i+1}</td><td>${k}</td><td class="tc">${c}</td><td class="tc">${tot>0?((c/tot)*100).toFixed(2)+'%':'0.00%'}</td></tr>`;
   });
+  rows+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tot}</td><td class="tc">100.00%</td></tr>`;
+  return {rows,lb,vs,tot};
+}
+function rptAcadPage(pgNo,title,d,sfx){
+  const RANK=['ศาสตราจารย์','รองศาสตราจารย์','ผู้ช่วยศาสตราจารย์','อาจารย์'];
+  const EDU=['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี'];
+  const rk=rptCountRows(d.rankCounts,RANK);
+  const edu=rptCountRows(d.eduCounts,EDU);
+  const cid1=`rpt-c-ark-${sfx}`,cid2=`rpt-c-aedu-${sfx}`;
+  _rptCharts.push({id:cid1,lb:rk.lb,vs:rk.vs});
+  _rptCharts.push({id:cid2,lb:edu.lb,vs:edu.vs});
+  return rptPage(pgNo,title,`
+    <div class="rpt-sub">ตำแหน่งทางวิชาการ</div>
+    ${rptWithChart(rptTbl(['ลำดับ','ตำแหน่งทางวิชาการ','จำนวน (คน)','ร้อยละ'],rk.rows),cid1)}
+    <div class="rpt-sub">คุณวุฒิการศึกษา (สายวิชาการ)</div>
+    ${rptWithChart(rptTbl(['ลำดับ','คุณวุฒิการศึกษา','จำนวน (คน)','ร้อยละ'],edu.rows),cid2)}`);
+}
+function rptSuppPage(pgNo,title,d,sfx){
+  const RANK=['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน'];
+  const EDU=['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี'];
+  const rk=rptCountRows(d.rankCounts,RANK);
+  const edu=rptCountRows(d.eduCounts,EDU);
+  const cid1=`rpt-c-srk-${sfx}`,cid2=`rpt-c-sedu-${sfx}`;
+  _rptCharts.push({id:cid1,lb:rk.lb,vs:rk.vs});
+  _rptCharts.push({id:cid2,lb:edu.lb,vs:edu.vs});
+  return rptPage(pgNo,title,`
+    <div class="rpt-sub">ตำแหน่งสายสนับสนุน</div>
+    ${rptWithChart(rptTbl(['ลำดับ','ตำแหน่งสายสนับสนุน','จำนวน (คน)','ร้อยละ'],rk.rows),cid1)}
+    <div class="rpt-sub">คุณวุฒิการศึกษา (สายสนับสนุน)</div>
+    ${rptWithChart(rptTbl(['ลำดับ','คุณวุฒิการศึกษา','จำนวน (คน)','ร้อยละ'],edu.rows),cid2)}
+    <div class="nb" style="margin-top:10px;">บุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่งสูงขึ้น จำนวน ${d.noRankCount||0} คน</div>`);
 }
 
-function getAllBySubUnit(subUnitFilter) {
-  const data    = getAllData();
-  const execSet = new Set(['อธิการบดี','ที่ปรึกษาอธิการบดี','รองอธิการบดี','ผู้ช่วยอธิการบดี']);
+// ── build all 23 pages ──────────────────────────────────────────
+async function buildReport(){
+  _rptCharts=[];
+  const pages=[];
 
-  const allSubUnits = [...new Set(data.map(r => unitKey(r)).filter(Boolean))];
-
-  // เรียง facUnits และ otherUnits ตาม custom order
-  const facUnits   = sortByCustomOrder(allSubUnits.filter(u => isFacUnit(u)),   FAC_ORDER);
-  const otherUnits = sortByCustomOrder(allSubUnits.filter(u => isOtherUnit(u)), UNIT_ORDER);
-
-  let targets;
-  if      (subUnitFilter === 'all')     targets = [...facUnits, ...otherUnits];
-  else if (subUnitFilter === 'fac-all') targets = facUnits;
-  else if (subUnitFilter === 'oth-all') targets = otherUnits;
-  else                                  targets = [subUnitFilter];
-
-  const facResult  = {};
-  const unitResult = {};
-
-  targets.forEach(unit => {
-    const members = data.filter(r => unitKey(r) === unit && !execSet.has(r.adminPos));
-
-    if (isFacUnit(unit)) {
-      // ── logic คณะ / วิทยาลัย ───────────────────────────────────
-      const deans    = members.filter(r => deanScore(r.adminPos) < 9)
-                               .sort((a, b) => deanScore(a.adminPos) - deanScore(b.adminPos));
-      const nonDeans = members.filter(r => deanScore(r.adminPos) === 9);
-
-      const branchMap = {};
-      const OFFICE    = '__office__';
-      nonDeans.forEach(r => {
-        const br  = (r.branch || '').trim();
-        const key = (br === '' || br.includes('สำนักงานคณบดี') || br.includes('สำนักงาน'))
-                    ? OFFICE : br;
-        if (!branchMap[key]) branchMap[key] = [];
-        branchMap[key].push(r);
-      });
-
-      const branchKeys = Object.keys(branchMap)
-        .filter(k => k !== OFFICE)
-        .sort((a, b) => a.localeCompare(b, 'th'));
-      if (branchMap[OFFICE]) branchKeys.push(OFFICE);
-
-      const sections = [];
-      if (deans.length) {
-        sections.push({ label: 'ผู้บริหาร', isDean: true, members: deans.map(r => mapMember(r)) });
-      }
-      branchKeys.forEach(key => {
-        const ms = (branchMap[key] || []).sort((a, b) => (Number(a.order)||0) - (Number(b.order)||0));
-        sections.push({
-          label  : key === OFFICE ? 'สำนักงานคณบดี' : key,
-          isDean : false,
-          members: ms.map(r => mapMember(r)),
-        });
-      });
-      facResult[unit] = sections;
-
-    } else if (isOtherUnit(unit)) {
-      // ── logic สำนัก / สถาบัน — แยกกลุ่มย่อยตาม branch (N) ────────
-      const directors = members.filter(r => directorScore(r.adminPos) < 9)
-                                .sort((a, b) => directorScore(a.adminPos) - directorScore(b.adminPos));
-      const nonDir    = members.filter(r => directorScore(r.adminPos) === 9);
-
-      const branchMap = {};
-      const OFFICE    = '__office__';
-      nonDir.forEach(r => {
-        const br  = (r.branch || '').trim();
-        const key = (br === '' || br.includes('สำนักงาน')) ? OFFICE : br;
-        if (!branchMap[key]) branchMap[key] = [];
-        branchMap[key].push(r);
-      });
-
-      // เรียง branch: สำนักงานอธิการบดี → ใช้ RECTOR_BRANCH_ORDER, อื่น → ตัวอักษร
-      const isRectorOffice = unit.includes('อธิการบดี');
-      const branchKeys = isRectorOffice
-        ? sortByCustomOrder(Object.keys(branchMap).filter(k => k !== OFFICE), RECTOR_BRANCH_ORDER)
-        : Object.keys(branchMap).filter(k => k !== OFFICE).sort((a, b) => a.localeCompare(b, 'th'));
-      if (branchMap[OFFICE]) branchKeys.push(OFFICE);
-
-      const officeLabel = 'สำนักงาน' + (isOtherUnit(unit) ? unit : '');
-
-      const sections = [];
-      if (directors.length) {
-        sections.push({ label: 'ผู้บริหาร', isDean: true, members: directors.map(r => mapUnitMember(r)) });
-      }
-      branchKeys.forEach(key => {
-        const ms = (branchMap[key] || []).sort((a, b) => (Number(a.order)||0) - (Number(b.order)||0));
-        sections.push({
-          label  : key === OFFICE ? officeLabel : key,
-          isDean : false,
-          members: ms.map(r => mapUnitMember(r)),
-        });
-      });
-      unitResult[unit] = sections;
-    }
+  // หน้า 1: จำแนกตามประเภท
+  const typeData=await callAPI('getPersonnelByType');
+  let h='',tA=0,tS=0,seq=1;
+  typeData.forEach(r=>{
+    const a=r.academic||0,s=r.support||0,t=a+s;tA+=a;tS+=s;
+    h+=`<tr><td class="tc">${seq++}</td><td>${r.type}</td><td class="tc">${a||'-'}</td><td class="tc">${s||'-'}</td><td class="tc font-semibold">${t||'-'}</td><td class="text-gray-500 text-xs">${r.budget||'-'}</td></tr>`;
   });
+  h+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tA}</td><td class="tc">${tS}</td><td class="tc">${tA+tS}</td><td></td></tr>`;
+  pages.push(rptPage(1,'จำแนกตามประเภทบุคลากร',
+    rptTbl(['ลำดับ','ประเภทบุคลากร','สายวิชาการ','สายสนับสนุน','รวม','งบประมาณ'],h)));
 
-  return { facResult, unitResult, facUnits, otherUnits };
-}
+  // หน้า 2: จำนวนรวมตามสังกัด
+  const ovv=await callAPI('getPersonnelByFaculty');
+  let h2='',tA2=0,tS2=0,tM2=0;const lb2=[],vs2=[];
+  (ovv.rows||[]).forEach((r,i)=>{
+    const t=(r.academic||0)+(r.support||0);tA2+=r.academic||0;tS2+=r.support||0;tM2+=r.mission||0;
+    lb2.push(r.faculty);vs2.push(t);
+    h2+=`<tr><td class="tc">${i+1}</td><td>${r.faculty}</td><td class="tc">${r.academic||'-'}</td><td class="tc">${r.support||'-'}</td><td class="tc font-semibold">${t}</td><td class="tc text-orange-600">${r.mission>0?r.mission:'-'}</td></tr>`;
+  });
+  h2+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tA2}</td><td class="tc">${tS2}</td><td class="tc">${tA2+tS2}</td><td class="tc">${tM2}</td></tr>`;
+  _rptCharts.push({id:'rpt-c-ovv',lb:lb2,vs:vs2});
+  pages.push(rptPage(2,'จำนวนรวมของบุคลากรจำแนกตามสังกัด',
+    rptWithChart(rptTbl(['ลำดับ','สังกัด','สายวิชาการ','สายสนับสนุน','รวม','จ้างตามภารกิจ'],h2),'rpt-c-ovv')+
+    `<div class="nb" style="margin-top:10px;">* ไม่นับรวมข้าราชการช่วยราชการ จำนวน ${ovv.secondedCount||0} คน</div>`));
 
-function getPersonnelByFacultyList(subUnitFilter) {
-  const f = subUnitFilter || 'all';
-  return getAllBySubUnit(f === 'all' ? 'fac-all' : f);
-}
-function getPersonnelByUnitList(subUnitFilter) {
-  const f = subUnitFilter || 'all';
-  return getAllBySubUnit(f === 'all' ? 'oth-all' : f);
-}
-function getAllSubUnitsForDropdown() {
-  const data = getAllData();
-  const all  = [...new Set(data.map(r => unitKey(r)).filter(Boolean))];
-  return {
-    facUnits  : sortByCustomOrder(all.filter(u => isFacUnit(u)),   FAC_ORDER),
-    otherUnits: sortByCustomOrder(all.filter(u => isOtherUnit(u)), UNIT_ORDER),
-  };
-}
+  // หน้า 3: สายวิชาการตามสังกัด
+  const acadF=await callAPI('getAcademicByFaculty');
+  const totA=acadF.reduce((s,r)=>s+(r.count||0),0);
+  let h3='';const lb3=[],vs3=[];
+  acadF.forEach((r,i)=>{lb3.push(r.faculty);vs3.push(r.count);
+    h3+=`<tr><td class="tc">${i+1}</td><td>${r.faculty}</td><td class="tc">${r.count}</td><td class="tc">${totA>0?((r.count/totA)*100).toFixed(2)+'%':'0.00%'}</td></tr>`;});
+  h3+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${totA}</td><td class="tc">100.00%</td></tr>`;
+  _rptCharts.push({id:'rpt-c-acad',lb:lb3,vs:vs3});
+  pages.push(rptPage(3,'บุคลากรสายวิชาการจำแนกตามสังกัด',
+    rptWithChart(rptTbl(['ลำดับ','สังกัด','จำนวน (คน)','ร้อยละ'],h3),'rpt-c-acad')));
 
-// ==================================================================
-// HELPERS
-// ==================================================================
-function isAcademic(s) { return s === 'สายวิชาการ' || s === 'วิชาการ'; }
-function isSupport(s)  { return s === 'สายสนับสนุน' || s === 'สนับสนุน'; }
-function uniqueFaculties(data) { return [...new Set(data.map(r => r.faculty).filter(Boolean))]; }
+  // หน้า 4: สายสนับสนุนตามสังกัด
+  const suppF=await callAPI('getSupportByFaculty');
+  const totS=suppF.reduce((s,r)=>s+(r.count||0),0);
+  let h4='';const lb4=[],vs4=[];
+  suppF.forEach((r,i)=>{lb4.push(r.faculty);vs4.push(r.count);
+    h4+=`<tr><td class="tc">${i+1}</td><td>${r.faculty}</td><td class="tc">${r.count}</td><td class="tc">${totS>0?((r.count/totS)*100).toFixed(2)+'%':'0.00%'}</td></tr>`;});
+  h4+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${totS}</td><td class="tc">100.00%</td></tr>`;
+  _rptCharts.push({id:'rpt-c-supp',lb:lb4,vs:vs4});
+  pages.push(rptPage(4,'บุคลากรสายสนับสนุนจำแนกตามสังกัด',
+    rptWithChart(rptTbl(['ลำดับ','สังกัด','จำนวน (คน)','ร้อยละ'],h4),'rpt-c-supp')));
 
-function deanScore(p) {
-  if (!p) return 9;
-  if (p.includes('คณบดี') && !p.includes('รอง')) return 1;
-  if (p.includes('รองคณบดี')) return 2;
-  return 9;
-}
-function directorScore(p) {
-  if (!p) return 9;
-  if (p.includes('ผู้อำนวยการ') && !p.includes('รอง')) return 1;
-  if (p.includes('รองผู้อำนวยการ')) return 2;
-  return 9;
-}
+  // หน้า 5: ตำแหน่ง/วุฒิ สายวิชาการ ภาพรวม
+  const arkAll=await callAPI('getAcademicRankAndEducation','all');
+  pages.push(rptAcadPage(5,'ตำแหน่งทางวิชาการและคุณวุฒิการศึกษา สายวิชาการ — ภาพรวมมหาวิทยาลัย',arkAll,'all'));
 
-function buildExecName(r) {
-  const dr  = r.education.includes('ปริญญาเอก') ? 'ดร.' : '';
-  const ac  = r.academicPos ? r.academicPos + ' ' : '';
-  const mid = r.middleName  ? r.middleName  + ' ' : '';
-  return (ac + dr + r.firstName + ' ' + mid + r.lastName).trim();
-}
-
-function mapMember(r) {
-  return {
-    fullName : buildFacultyMemberName(r),
-    position : buildFacultyMemberPos(r),
-    adminPos : r.adminPos,
-    staffLine: r.staffLine,
-    branch   : r.branch,
-  };
-}
-
-function mapUnitMember(r) {
-  return {
-    fullName : buildUnitMemberName(r),
-    position : buildUnitMemberPos(r),
-    adminPos : r.adminPos,
-  };
-}
-
-function buildFacultyMemberName(r) {
-  const mid   = r.middleName ? r.middleName + ' ' : '';
-  const plain = ['นาย','นาง','นางสาว','Mr.','Ms.','Mrs.'];
-  const dr    = r.education.includes('ปริญญาเอก') ? 'ดร.' : '';
-
-  if (deanScore(r.adminPos) < 9) {
-    const ac = r.academicPos ? r.academicPos + ' ' : '';
-    return (ac + dr + r.firstName + ' ' + mid + r.lastName).trim();
+  // หน้า 6-11: ตำแหน่ง/วุฒิ สายวิชาการ แยกคณะ
+  for(let i=0;i<FAC_LIST.length;i++){
+    const d=await callAPI('getAcademicRankAndEducation',FAC_LIST[i]);
+    pages.push(rptAcadPage(6+i,`ตำแหน่งทางวิชาการและคุณวุฒิการศึกษา สายวิชาการ — ${FAC_LIST[i]}`,d,`f${i}`));
   }
 
-  if (isAcademic(r.staffLine)) {
-    if (!plain.includes(r.prefix) && r.prefix) {
-      return (r.prefix + ' ' + dr + r.firstName + ' ' + mid + r.lastName).trim();
-    }
-    const ac = r.academicPos ? r.academicPos + ' ' : '';
-    return (ac + dr + r.firstName + ' ' + mid + r.lastName).trim();
+  // หน้า 12: ตำแหน่ง/วุฒิ สายสนับสนุน ภาพรวม
+  const srkAll=await callAPI('getSupportRankAndEducation','all');
+  pages.push(rptSuppPage(12,'ตำแหน่งสายสนับสนุนและคุณวุฒิการศึกษา สายสนับสนุน — ภาพรวมมหาวิทยาลัย',srkAll,'all'));
+
+  // หน้า 13-23: ตำแหน่ง/วุฒิ สายสนับสนุน แยกหน่วยงาน
+  for(let i=0;i<SUPP_UNIT_LIST.length;i++){
+    const d=await callAPI('getSupportRankAndEducation',SUPP_UNIT_LIST[i]);
+    pages.push(rptSuppPage(13+i,`ตำแหน่งสายสนับสนุนและคุณวุฒิการศึกษา สายสนับสนุน — ${SUPP_UNIT_LIST[i]}`,d,`u${i}`));
   }
 
-  return ((r.prefix ? r.prefix + ' ' : '') + r.firstName + ' ' + mid + r.lastName).trim();
+  return pages.join('');
 }
 
-function buildFacultyMemberPos(r) {
-  if (deanScore(r.adminPos) < 9) return r.adminPos;
-  if (isAcademic(r.staffLine))   return r.academicPos;
-  if (isSupport(r.staffLine)) {
-    return r.supportLevel.includes('ชำนาญการ')
-      ? (r.academicPos + ' ' + r.supportLevel).trim()
-      : r.academicPos;
-  }
-  return r.academicPos;
-}
+// ─── Boot ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>doType());
 
-function buildUnitMemberName(r) {
-  const mid = r.middleName ? r.middleName + ' ' : '';
-  const dr  = r.education.includes('ปริญญาเอก') ? 'ดร.' : '';
-  if (directorScore(r.adminPos) < 9) {
-    const ac = r.academicPos ? r.academicPos + ' ' : '';
-    return (ac + dr + r.firstName + ' ' + mid + r.lastName).trim();
+// ── open / close / print ────────────────────────────────────────
+async function openReport(){
+  const overlay=document.getElementById('rpt-overlay');
+  const loading=document.getElementById('rpt-loading');
+  const content=document.getElementById('rpt-content');
+  overlay.classList.add('on');
+  loading.style.display='block';
+  content.innerHTML='';
+  document.getElementById('rpt-foot-date').textContent='ข้อมูล ณ วันที่ '+thaiDate();
+  try{
+    const html=await buildReport();
+    content.innerHTML=html;
+    loading.style.display='none';
+    // render charts หลัง DOM พร้อม
+    setTimeout(()=>{
+      _rptCharts.forEach(c=>{
+        if(c.lb&&c.lb.length){
+          kch(c.id);
+          const el=document.getElementById(c.id);
+          if(!el) return;
+          const tot=c.vs.reduce((a,b)=>a+b,0);
+          _ch[c.id]=new Chart(el,{
+            type:'doughnut',
+            data:{labels:c.lb,datasets:[{data:c.vs,backgroundColor:CLR.slice(0,c.vs.length),borderWidth:2,borderColor:'#fff'}]},
+            options:{responsive:true,animation:false,plugins:{
+              legend:{position:'bottom',labels:{font:{family:'Sarabun',size:10},padding:5,boxWidth:11}},
+              tooltip:{callbacks:{label:x=>` ${x.label}: ${x.raw} คน (${tot>0?((x.raw/tot)*100).toFixed(1):0}%)`}}
+            }}
+          });
+        }
+      });
+    },150);
+  }catch(e){
+    loading.innerHTML=`<div style="color:#dc2626;padding:20px;">เกิดข้อผิดพลาด: ${e.message}</div>`;
   }
-  return ((r.prefix ? r.prefix + ' ' : '') + r.firstName + ' ' + mid + r.lastName).trim();
 }
-
-function buildUnitMemberPos(r) {
-  if (directorScore(r.adminPos) < 9) return r.adminPos;
-  if (isSupport(r.staffLine)) {
-    return r.supportLevel.includes('ชำนาญการ')
-      ? (r.academicPos + ' ' + r.supportLevel).trim()
-      : r.academicPos;
-  }
-  return r.academicPos;
+function closeReport(){
+  document.getElementById('rpt-overlay').classList.remove('on');
 }
+function rptCloseOutside(e){
+  if(e.target===document.getElementById('rpt-overlay')) closeReport();
+}
+function printReport(){
+  document.body.classList.add('rpt-printing');
+  window.print();
+  setTimeout(()=>document.body.classList.remove('rpt-printing'),1000);
+}
+</script>
+</body>
+</html>
