@@ -982,7 +982,7 @@ async function buildReport(){
   _rptCharts.push({id:'rpt-c-ovv',lb:lb2,vs:vs2});
   pages.push(rptPage(2,'จำนวนรวมของบุคลากรจำแนกตามสังกัด',
     rptWithChart(rptTbl(['ลำดับ','สังกัด','สายวิชาการ','สายสนับสนุน','รวม','จ้างตามภารกิจ'],h2),'rpt-c-ovv')+
-    `<div class="nb" style="margin-top:10px;">* ไม่นับรวมข้าราชการช่วยราชการ จำนวน ${ovv.secondedCount||0} คน</div>`));
+    `<div class="nb" style="margin-top:10px;"></div>`));
 
   // หน้า 3: สายวิชาการตามสังกัด
   const acadF=await callAPI('getAcademicByFaculty');
