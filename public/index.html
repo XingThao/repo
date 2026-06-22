@@ -150,7 +150,22 @@ h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
 .rpt-sub{font-weight:600;color:#475569;font-size:13px;margin:16px 0 8px;}
 body.rpt-printing #sb,body.rpt-printing #topbar,body.rpt-printing #main,body.rpt-printing .nop{display:none!important;}
 body.rpt-printing{background:#fff!important;}
-body.rpt-printing #rpt-overlay{position:static!important;background:none!important;display:block!important;z-index:auto!important;}
+/* ── Rank Popup Modal ── */
+#rank-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:900;align-items:center;justify-content:center;}
+#rank-overlay.on{display:flex;}
+#rank-box{background:#fff;border-radius:13px;width:92vw;max-width:700px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.28);}
+#rank-head{background:linear-gradient(90deg,var(--prid),var(--pri));padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+#rank-head h3{color:#fff;font-family:'Prompt',sans-serif;font-size:15px;margin:0;}
+#rank-head-sub{color:rgba(201,165,59,.88);font-size:12px;margin-top:2px;}
+#rank-close{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:13px;font-family:'Sarabun',sans-serif;}
+#rank-close:hover{background:rgba(255,255,255,.3);}
+#rank-body{flex:1;overflow-y:auto;padding:18px 20px;}
+#rank-loading{text-align:center;padding:36px;color:#64748b;font-size:14px;}
+#rank-count{font-size:13px;color:#64748b;background:#f1f5f9;border-radius:6px;padding:6px 12px;margin-bottom:12px;display:inline-block;}
+.rk-row-click{cursor:pointer;transition:background .15s;}
+.rk-row-click:hover td{background:#dbeafe!important;color:#1e3a8a!important;}
+body.nop-rank .rk-row-click{cursor:default;}
+
 body.rpt-printing #rpt-box{width:100%!important;max-width:100%!important;max-height:none!important;box-shadow:none!important;border-radius:0!important;}
 body.rpt-printing #rpt-head,body.rpt-printing #rpt-footer{display:none!important;}
 body.rpt-printing #rpt-body{overflow:visible!important;}
@@ -448,12 +463,29 @@ body.rpt-printing .dt th{background:var(--pri)!important;-webkit-print-color-adj
   </div>
 </div>
 
-<script>
-// ─── API Helper (แทน google.script.run) ──────────────────────────
+<!-- ══ RANK POPUP MODAL ══ -->
+<div id="rank-overlay" onclick="rankCloseOutside(event)">
+  <div id="rank-box">
+    <div id="rank-head">
+      <div>
+        <h3 id="rank-modal-title">รายชื่อบุคลากร</h3>
+        <div id="rank-head-sub"></div>
+      </div>
+      <button id="rank-close" onclick="closeRankModal()">✕ ปิด</button>
+    </div>
+    <div id="rank-body">
+      <div id="rank-loading" style="display:none;">⏳ กำลังโหลดข้อมูล…</div>
+      <div id="rank-content"></div>
+    </div>
+  </div>
+</div>
+
+
 // เรียก Netlify Function ที่ /api?action=xxx&filter=yyy
-async function callAPI(action, filter) {
+async function callAPI(action, filter, extra) {
   let url = `/api?action=${encodeURIComponent(action)}`;
   if (filter !== undefined) url += `&filter=${encodeURIComponent(filter)}`;
+  if (extra) Object.entries(extra).forEach(([k,v])=> url += `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
   const res  = await fetch(url);
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'เกิดข้อผิดพลาดจาก API');
@@ -601,7 +633,7 @@ function loadAcadRk(){
 }
 function renderAcadRk(r){
   hs('acadrk');sc('acadrk');
-  mkCntTbl('tb-acadrk','ch-acadrk',r.rankCounts,['ศาสตราจารย์','รองศาสตราจารย์','ผู้ช่วยศาสตราจารย์','อาจารย์']);
+  mkCntTbl('tb-acadrk','ch-acadrk',r.rankCounts,['ศาสตราจารย์','รองศาสตราจารย์','ผู้ช่วยศาสตราจารย์','อาจารย์'],'academic');
   mkCntTbl('tb-acedu','ch-acedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี']);
 }
 
@@ -620,23 +652,85 @@ function loadSuppRk(){
 }
 function renderSuppRk(r){
   hs('supprk');sc('supprk');
-  mkCntTbl('tb-supprk','ch-supprk',r.rankCounts,['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน']);
+  mkCntTbl('tb-supprk','ch-supprk',r.rankCounts,['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน'],'support');
   mkCntTbl('tb-suppedu','ch-suppedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี']);
   document.getElementById('note-supprk').textContent=
     'บุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่งสูงขึ้นสายสนับสนุน จำนวน '+(r.noRankCount||0)+' คน';
 }
 
-function mkCntTbl(tid,cid,counts,order){
+function mkCntTbl(tid,cid,counts,order,rankType){
   const tot=order.reduce((s,k)=>s+(counts[k]||0),0);
   const lb=[],vs=[];let h='';
   order.forEach((k,i)=>{
     const c=counts[k]||0;
     if(c>0){lb.push(k);vs.push(c);}
-    h+=`<tr><td class="tc">${i+1}</td><td>${k}</td><td class="tc">${c}</td><td class="tc">${pp(c,tot)}</td><td></td></tr>`;
+    const clickable = c > 0 && rankType
+      ? `class="rk-row-click" onclick="openRankModal('${rankType}','${k.replace(/'/g,'\\\'')}')" title="คลิกเพื่อดูรายชื่อ"`
+      : '';
+    const badge = c > 0 && rankType
+      ? `<span style="color:#2a5cad;font-size:11px;margin-left:4px;">🔍</span>`
+      : '';
+    h+=`<tr ${clickable}><td class="tc">${i+1}</td><td>${k}${badge}</td><td class="tc">${c}</td><td class="tc">${pp(c,tot)}</td><td></td></tr>`;
   });
   h+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tot}</td><td class="tc">100.00%</td><td></td></tr>`;
   document.getElementById(tid).innerHTML=h;
   pie(cid,lb,vs);
+}
+
+// ─── Rank Popup ───────────────────────────────────────────────
+function openRankModal(rankType, rankName){
+  const fac = rankType === 'academic'
+    ? (document.getElementById('sel-acadrk')?.value || 'all')
+    : (document.getElementById('sel-supprk')?.value || 'all');
+
+  const typeLabel = rankType === 'academic' ? 'สายวิชาการ' : 'สายสนับสนุน';
+  const facLabel  = fac === 'all' ? 'ทุกสังกัด' : fac;
+
+  document.getElementById('rank-modal-title').textContent = `${rankName} — ${typeLabel}`;
+  document.getElementById('rank-head-sub').textContent    = `สังกัด: ${facLabel}`;
+  document.getElementById('rank-loading').style.display  = 'block';
+  document.getElementById('rank-content').innerHTML      = '';
+  document.getElementById('rank-overlay').classList.add('on');
+
+  callAPI('getPersonnelByRank', fac, { rankType, rankName })
+    .then(rows => {
+      document.getElementById('rank-loading').style.display = 'none';
+      if (!rows || !rows.length){
+        document.getElementById('rank-content').innerHTML =
+          '<div style="text-align:center;padding:32px;color:#94a3b8;">ไม่พบข้อมูลบุคลากร</div>';
+        return;
+      }
+      let h = `<div id="rank-count">พบทั้งสิ้น <strong>${rows.length}</strong> คน</div>`;
+      h += `<div class="tw"><table class="dt">
+        <thead><tr>
+          <th style="width:50px">ลำดับ</th>
+          <th>ชื่อ – สกุล</th>
+          <th>ตำแหน่ง</th>
+          <th>สังกัด</th>
+        </tr></thead><tbody>`;
+      rows.forEach((r,i)=>{
+        h += `<tr>
+          <td class="tc">${i+1}</td>
+          <td>${r.fullName}</td>
+          <td>${r.position||'-'}</td>
+          <td style="font-size:12.5px;color:#475569;">${r.faculty||'-'}</td>
+        </tr>`;
+      });
+      h += '</tbody></table></div>';
+      document.getElementById('rank-content').innerHTML = h;
+    })
+    .catch(err => {
+      document.getElementById('rank-loading').style.display = 'none';
+      document.getElementById('rank-content').innerHTML =
+        `<div style="color:#dc2626;padding:20px;">เกิดข้อผิดพลาด: ${err.message}</div>`;
+    });
+}
+
+function closeRankModal(){
+  document.getElementById('rank-overlay').classList.remove('on');
+}
+function rankCloseOutside(e){
+  if(e.target===document.getElementById('rank-overlay')) closeRankModal();
 }
 
 // ─── 4.2.1 ผู้บริหาร ─────────────────────────────────────────────
