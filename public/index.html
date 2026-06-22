@@ -150,6 +150,7 @@ h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
 .rpt-sub{font-weight:600;color:#475569;font-size:13px;margin:16px 0 8px;}
 body.rpt-printing #sb,body.rpt-printing #topbar,body.rpt-printing #main,body.rpt-printing .nop{display:none!important;}
 body.rpt-printing{background:#fff!important;}
+body.rpt-printing #rpt-overlay{position:static!important;background:none!important;display:block!important;z-index:auto!important;}
 /* ── Rank Popup Modal ── */
 #rank-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:900;align-items:center;justify-content:center;}
 #rank-overlay.on{display:flex;}
@@ -633,8 +634,8 @@ function loadAcadRk(){
 }
 function renderAcadRk(r){
   hs('acadrk');sc('acadrk');
-  mkCntTbl('tb-acadrk','ch-acadrk',r.rankCounts,['ศาสตราจารย์','รองศาสตราจารย์','ผู้ช่วยศาสตราจารย์','อาจารย์'],'academic');
-  mkCntTbl('tb-acedu','ch-acedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี']);
+  mkCntTbl('tb-acadrk','ch-acadrk',r.rankCounts,['ศาสตราจารย์','รองศาสตราจารย์','ผู้ช่วยศาสตราจารย์','อาจารย์'],'academic','rank');
+  mkCntTbl('tb-acedu','ch-acedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี'],'academic','edu');
 }
 
 // ─── 4.1.6 init ──────────────────────────────────────────────────
@@ -652,22 +653,22 @@ function loadSuppRk(){
 }
 function renderSuppRk(r){
   hs('supprk');sc('supprk');
-  mkCntTbl('tb-supprk','ch-supprk',r.rankCounts,['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน'],'support');
-  mkCntTbl('tb-suppedu','ch-suppedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี']);
+  mkCntTbl('tb-supprk','ch-supprk',r.rankCounts,['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน'],'support','rank');
+  mkCntTbl('tb-suppedu','ch-suppedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี'],'support','edu');
   document.getElementById('note-supprk').textContent=
     'บุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่งสูงขึ้นสายสนับสนุน จำนวน '+(r.noRankCount||0)+' คน';
 }
 
-function mkCntTbl(tid,cid,counts,order,rankType){
+function mkCntTbl(tid,cid,counts,order,rankType,queryType){
   const tot=order.reduce((s,k)=>s+(counts[k]||0),0);
   const lb=[],vs=[];let h='';
   order.forEach((k,i)=>{
     const c=counts[k]||0;
     if(c>0){lb.push(k);vs.push(c);}
-    const clickable = c > 0 && rankType
-      ? `class="rk-row-click" onclick="openRankModal('${rankType}','${k.replace(/'/g,'\\\'')}')" title="คลิกเพื่อดูรายชื่อ"`
+    const clickable = c > 0 && rankType && queryType
+      ? `class="rk-row-click" onclick="openRankModal('${rankType}','${queryType}','${k.replace(/'/g,'\\\'')}')" title="คลิกเพื่อดูรายชื่อ"`
       : '';
-    const badge = c > 0 && rankType
+    const badge = c > 0 && rankType && queryType
       ? `<span style="color:#2a5cad;font-size:11px;margin-left:4px;">🔍</span>`
       : '';
     h+=`<tr ${clickable}><td class="tc">${i+1}</td><td>${k}${badge}</td><td class="tc">${c}</td><td class="tc">${pp(c,tot)}</td><td></td></tr>`;
@@ -677,22 +678,23 @@ function mkCntTbl(tid,cid,counts,order,rankType){
   pie(cid,lb,vs);
 }
 
-// ─── Rank Popup ───────────────────────────────────────────────
-function openRankModal(rankType, rankName){
+// ─── Rank/Edu Popup ───────────────────────────────────────────
+function openRankModal(rankType, queryType, rankName){
   const fac = rankType === 'academic'
     ? (document.getElementById('sel-acadrk')?.value || 'all')
     : (document.getElementById('sel-supprk')?.value || 'all');
 
-  const typeLabel = rankType === 'academic' ? 'สายวิชาการ' : 'สายสนับสนุน';
-  const facLabel  = fac === 'all' ? 'ทุกสังกัด' : fac;
+  const typeLabel  = rankType === 'academic' ? 'สายวิชาการ' : 'สายสนับสนุน';
+  const queryLabel = queryType === 'edu' ? 'คุณวุฒิ' : 'ตำแหน่ง';
+  const facLabel   = fac === 'all' ? 'ทุกสังกัด' : fac;
 
   document.getElementById('rank-modal-title').textContent = `${rankName} — ${typeLabel}`;
-  document.getElementById('rank-head-sub').textContent    = `สังกัด: ${facLabel}`;
+  document.getElementById('rank-head-sub').textContent    = `${queryLabel} | สังกัด: ${facLabel}`;
   document.getElementById('rank-loading').style.display  = 'block';
   document.getElementById('rank-content').innerHTML      = '';
   document.getElementById('rank-overlay').classList.add('on');
 
-  callAPI('getPersonnelByRank', fac, { rankType, rankName })
+  callAPI('getPersonnelByRank', fac, { rankType, queryType, rankName })
     .then(rows => {
       document.getElementById('rank-loading').style.display = 'none';
       if (!rows || !rows.length){
@@ -700,19 +702,26 @@ function openRankModal(rankType, rankName){
           '<div style="text-align:center;padding:32px;color:#94a3b8;">ไม่พบข้อมูลบุคลากร</div>';
         return;
       }
+      // กำหนดหัวตาราง: ถ้าเป็น edu → แสดงคอลัมน์ตำแหน่ง, ถ้าเป็น rank → แสดงคอลัมน์วุฒิ
+      const extraHead = queryType === 'edu'
+        ? '<th>ตำแหน่ง</th>'
+        : '<th>คุณวุฒิ</th>';
       let h = `<div id="rank-count">พบทั้งสิ้น <strong>${rows.length}</strong> คน</div>`;
       h += `<div class="tw"><table class="dt">
         <thead><tr>
           <th style="width:50px">ลำดับ</th>
           <th>ชื่อ – สกุล</th>
-          <th>ตำแหน่ง</th>
+          ${extraHead}
           <th>สังกัด</th>
         </tr></thead><tbody>`;
       rows.forEach((r,i)=>{
+        const extraCell = queryType === 'edu'
+          ? `<td>${r.position||'-'}</td>`
+          : `<td style="font-size:12.5px;">${r.education||'-'}</td>`;
         h += `<tr>
           <td class="tc">${i+1}</td>
           <td>${r.fullName}</td>
-          <td>${r.position||'-'}</td>
+          ${extraCell}
           <td style="font-size:12.5px;color:#475569;">${r.faculty||'-'}</td>
         </tr>`;
       });
