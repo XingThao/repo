@@ -357,6 +357,53 @@ async function getAllBySubUnit(data, subUnitFilter) {
   return { facResult, unitResult, facUnits, otherUnits };
 }
 
+// ─── getPersonnelByRank ───────────────────────────────────────
+// rankType: 'academic' | 'support'
+// rankName: เช่น 'ศาสตราจารย์', 'ชำนาญการพิเศษ'
+// facultyFilter: 'all' | ชื่อสังกัด
+async function getPersonnelByRank(data, rankType, rankName, facultyFilter) {
+  const filtered = data.filter(r => {
+    if (facultyFilter !== 'all' && r.faculty !== facultyFilter) return false;
+    if (rankType === 'academic') {
+      if (!isAcademic(r.staffLine)) return false;
+      const rankOrder = ['ศาสตราจารย์','รองศาสตราจารย์','ผู้ช่วยศาสตราจารย์','อาจารย์'];
+      const matched = rankOrder.find(x => r.academicPos === x) || rankOrder.find(x => r.academicPos.includes(x));
+      return matched === rankName;
+    } else {
+      if (!isSupport(r.staffLine)) return false;
+      return r.supportLevel.includes(rankName);
+    }
+  });
+
+  return filtered.map(r => {
+    const mid = r.middleName ? r.middleName + ' ' : '';
+    const dr  = r.education.includes('ปริญญาเอก') ? 'ดร.' : '';
+    let fullName, position;
+
+    if (rankType === 'academic') {
+      const plain = ['นาย','นาง','นางสาว','Mr.','Ms.','Mrs.'];
+      const ac = r.academicPos ? r.academicPos + ' ' : '';
+      if (!plain.includes(r.prefix) && r.prefix) {
+        fullName = (ac + r.prefix + ' ' + dr + r.firstName + ' ' + mid + r.lastName).trim();
+      } else {
+        fullName = (ac + dr + r.firstName + ' ' + mid + r.lastName).trim();
+      }
+      position = r.academicPos;
+    } else {
+      fullName = ((r.prefix ? r.prefix + ' ' : '') + r.firstName + ' ' + mid + r.lastName).trim();
+      position = r.supportLevel.includes('ชำนาญการ')
+        ? (r.academicPos + ' ' + r.supportLevel).trim()
+        : r.academicPos;
+    }
+
+    return {
+      fullName,
+      position,
+      faculty: r.faculty || r.subUnit || 'ไม่ระบุ',
+    };
+  }).sort((a, b) => a.faculty.localeCompare(b.faculty, 'th'));
+}
+
 // ─── Main Handler ─────────────────────────────────────────────
 exports.handler = async (event) => {
   const headers = {
@@ -394,6 +441,12 @@ exports.handler = async (event) => {
         result = await getAllBySubUnit(data, filter === 'all' ? 'fac-all' : filter); break;
       case 'getPersonnelByUnitList':
         result = await getAllBySubUnit(data, filter === 'all' ? 'oth-all' : filter); break;
+      case 'getPersonnelByRank': {
+        const rankType   = event.queryStringParameters?.rankType   || 'academic';
+        const rankName   = event.queryStringParameters?.rankName   || '';
+        result = await getPersonnelByRank(data, rankType, rankName, filter);
+        break;
+      }
       default:
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'unknown action: ' + action }) };
     }
