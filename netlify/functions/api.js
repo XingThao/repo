@@ -358,20 +358,32 @@ async function getAllBySubUnit(data, subUnitFilter) {
 }
 
 // ─── getPersonnelByRank ───────────────────────────────────────
-// rankType: 'academic' | 'support'
-// rankName: เช่น 'ศาสตราจารย์', 'ชำนาญการพิเศษ'
+// rankType  : 'academic' | 'support'
+// queryType : 'rank' (ตำแหน่ง) | 'edu' (คุณวุฒิ)
+// rankName  : เช่น 'ศาสตราจารย์', 'ปริญญาเอก'
 // facultyFilter: 'all' | ชื่อสังกัด
-async function getPersonnelByRank(data, rankType, rankName, facultyFilter) {
+const EDU_KEYS = ['ปริญญาเอก','ปริญญาโท','ปริญญาตรี'];
+function matchEdu(education, eduName) {
+  if (eduName === 'ต่ำกว่าปริญญาตรี') return !EDU_KEYS.some(e => education.includes(e));
+  return education.includes(eduName);
+}
+
+async function getPersonnelByRank(data, rankType, queryType, rankName, facultyFilter) {
   const filtered = data.filter(r => {
     if (facultyFilter !== 'all' && r.faculty !== facultyFilter) return false;
-    if (rankType === 'academic') {
-      if (!isAcademic(r.staffLine)) return false;
-      const rankOrder = ['ศาสตราจารย์','รองศาสตราจารย์','ผู้ช่วยศาสตราจารย์','อาจารย์'];
-      const matched = rankOrder.find(x => r.academicPos === x) || rankOrder.find(x => r.academicPos.includes(x));
-      return matched === rankName;
+    if (rankType === 'academic' && !isAcademic(r.staffLine)) return false;
+    if (rankType === 'support'  && !isSupport(r.staffLine))  return false;
+
+    if (queryType === 'edu') {
+      return matchEdu(r.education, rankName);
     } else {
-      if (!isSupport(r.staffLine)) return false;
-      return r.supportLevel.includes(rankName);
+      if (rankType === 'academic') {
+        const rankOrder = ['ศาสตราจารย์','รองศาสตราจารย์','ผู้ช่วยศาสตราจารย์','อาจารย์'];
+        const matched = rankOrder.find(x => r.academicPos === x) || rankOrder.find(x => r.academicPos.includes(x));
+        return matched === rankName;
+      } else {
+        return r.supportLevel.includes(rankName);
+      }
     }
   });
 
@@ -388,18 +400,19 @@ async function getPersonnelByRank(data, rankType, rankName, facultyFilter) {
       } else {
         fullName = (ac + dr + r.firstName + ' ' + mid + r.lastName).trim();
       }
-      position = r.academicPos;
+      position = r.academicPos || '-';
     } else {
       fullName = ((r.prefix ? r.prefix + ' ' : '') + r.firstName + ' ' + mid + r.lastName).trim();
       position = r.supportLevel.includes('ชำนาญการ')
         ? (r.academicPos + ' ' + r.supportLevel).trim()
-        : r.academicPos;
+        : (r.academicPos || '-');
     }
 
     return {
       fullName,
       position,
-      faculty: r.faculty || r.subUnit || 'ไม่ระบุ',
+      education: r.education || '-',
+      faculty  : r.faculty || r.subUnit || 'ไม่ระบุ',
     };
   }).sort((a, b) => a.faculty.localeCompare(b.faculty, 'th'));
 }
@@ -442,9 +455,10 @@ exports.handler = async (event) => {
       case 'getPersonnelByUnitList':
         result = await getAllBySubUnit(data, filter === 'all' ? 'oth-all' : filter); break;
       case 'getPersonnelByRank': {
-        const rankType   = event.queryStringParameters?.rankType   || 'academic';
-        const rankName   = event.queryStringParameters?.rankName   || '';
-        result = await getPersonnelByRank(data, rankType, rankName, filter);
+        const rankType  = event.queryStringParameters?.rankType  || 'academic';
+        const queryType = event.queryStringParameters?.queryType || 'rank';
+        const rankName  = event.queryStringParameters?.rankName  || '';
+        result = await getPersonnelByRank(data, rankType, queryType, rankName, filter);
         break;
       }
       default:
