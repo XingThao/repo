@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบจัดการข้อมูลบุคลากร (Admin) — มรภ.ศรีสะเกษ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pri:#1b3d6f; --prid:#0f2547; --pril:#2a5cad;
+  --gld:#c9a53b; --glll:#e8c96a;
+  --bg:#eef2f8;
+}
+*,*::before,*::after{box-sizing:border-box;}
+body{margin:0;font-family:'Sarabun',sans-serif;background:var(--bg);color:#1e293b;}
+h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
+
+/* ── Topbar ── */
+#topbar{background:linear-gradient(90deg,var(--prid) 0%,var(--pri) 55%,#1e4585 100%);
+  padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:40;}
+#topbar h1{color:#fff;font-size:16px;margin:0;display:flex;align-items:center;gap:9px;}
+#topbar h1 .s{color:rgba(201,165,59,.9);font-size:12px;font-weight:400;margin-left:8px;}
+#logoutBtn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:7px;
+  padding:7px 15px;cursor:pointer;font-size:13px;font-family:'Sarabun',sans-serif;}
+#logoutBtn:hover{background:rgba(255,255,255,.28);}
+
+.wrap{max-width:1400px;margin:0 auto;padding:22px 24px 60px;}
+
+/* ── Toolbar ── */
+.tool{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;}
+.tool input[type=text]{font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:8px;
+  padding:9px 13px;font-size:13.5px;min-width:230px;background:#fff;}
+.tool select{font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:8px;
+  padding:9px 13px;font-size:13.5px;background:#fff;cursor:pointer;}
+.btn{font-family:'Sarabun',sans-serif;border:none;border-radius:8px;padding:9px 17px;
+  font-size:13.5px;cursor:pointer;font-weight:600;transition:opacity .15s;}
+.btn:hover{opacity:.88;}
+.btn-pri{background:var(--pri);color:#fff;}
+.btn-gld{background:linear-gradient(135deg,var(--gld),#a07020);color:#fff;}
+.btn-gray{background:#e2e8f0;color:#334155;}
+.btn-red{background:#fee2e2;color:#b91c1c;}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:6px;}
+.spacer{flex:1;}
+.count-badge{font-size:12.5px;color:#64748b;background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:5px 14px;}
+
+/* ── Table ── */
+.tw{overflow-x:auto;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.09);background:#fff;}
+.dt{width:100%;border-collapse:collapse;font-size:13px;}
+.dt th{background:var(--pri);color:#fff;padding:9px 11px;text-align:center;
+  border:1px solid rgba(255,255,255,.14);font-weight:600;white-space:nowrap;position:sticky;top:0;}
+.dt td{padding:7px 11px;border:1px solid #e4eaf4;vertical-align:middle;white-space:nowrap;}
+.dt tbody tr:nth-child(even) td{background:#f6f9fd;}
+.dt tbody tr:hover td{background:#e8f0fe;}
+.tc{text-align:center!important;}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:600;}
+.badge-active{background:#dcfce7;color:#166534;}
+.badge-ended{background:#fee2e2;color:#b91c1c;}
+
+/* ── Modal ── */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;
+  align-items:center;justify-content:center;padding:20px;}
+.ov.on{display:flex;}
+.box{background:#fff;border-radius:13px;width:100%;max-width:760px;max-height:90vh;
+  display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.28);}
+.bhd{background:linear-gradient(90deg,var(--prid),var(--pri));padding:15px 22px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.bhd h3{color:#fff;font-size:15px;margin:0;}
+.bhd button{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:6px;
+  padding:5px 12px;cursor:pointer;font-size:13px;}
+.bhd button:hover{background:rgba(255,255,255,.3);}
+.bbody{flex:1;overflow-y:auto;padding:20px 22px;}
+.bft{padding:14px 22px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;}
+
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;}
+.fg{display:flex;flex-direction:column;gap:4px;}
+.fg label{font-size:12.5px;font-weight:600;color:#475569;}
+.fg input,.fg select{font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:7px;
+  padding:8px 11px;font-size:13.5px;}
+.fg.full{grid-column:1/-1;}
+
+/* ── Login screen ── */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,var(--prid),var(--pri) 55%,#1e4585);}
+#loginBox{background:#fff;border-radius:14px;padding:34px 32px;width:100%;max-width:360px;
+  box-shadow:0 10px 40px rgba(0,0,0,.3);text-align:center;}
+#loginBox .ico{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--gld),#a07020);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px;}
+#loginBox h2{font-size:16px;color:var(--pri);margin:0 0 4px;}
+#loginBox p{font-size:12.5px;color:#94a3b8;margin:0 0 20px;}
+#loginBox input{width:100%;font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:8px;
+  padding:11px 14px;font-size:14px;margin-bottom:12px;text-align:center;}
+#loginBox button{width:100%;background:var(--pri);color:#fff;border:none;border-radius:8px;
+  padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Sarabun',sans-serif;}
+#loginBox button:hover{background:var(--pril);}
+#loginErr{color:#dc2626;font-size:12.5px;margin-top:8px;min-height:16px;}
+
+#app{display:none;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="loginScreen">
+  <div id="loginBox">
+    <div class="ico">🔒</div>
+    <h2>เข้าสู่ระบบผู้ดูแล</h2>
+    <p>ระบบจัดการข้อมูลบุคลากร มรภ.ศรีสะเกษ</p>
+    <input type="password" id="passInput" placeholder="รหัสผ่าน" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <div id="topbar">
+    <h1>🛠️ ระบบจัดการข้อมูลบุคลากร <span class="s">มรภ.ศรีสะเกษ</span></h1>
+    <button id="logoutBtn" onclick="doLogout()">ออกจากระบบ</button>
+  </div>
+
+  <div class="wrap">
+    <div class="tool">
+      <input type="text" id="searchBox" placeholder="🔍 ค้นหาชื่อ, นามสกุล, สังกัด..." oninput="renderTable()">
+      <select id="statusFilter" onchange="renderTable()">
+        <option value="all">— สถานะทั้งหมด —</option>
+        <option value="active">กำลังปฏิบัติงาน (ไม่รวมสิ้นสุดสัญญา)</option>
+        <option value="ended">สิ้นสุดสัญญาเท่านั้น</option>
+      </select>
+      <span class="count-badge" id="countBadge">— รายการ</span>
+      <div class="spacer"></div>
+      <button class="btn btn-gray" onclick="loadAll()">↻ โหลดใหม่</button>
+      <button class="btn btn-gld" onclick="openAddModal()">+ เพิ่มบุคลากรใหม่</button>
+    </div>
+
+    <div class="tw">
+      <table class="dt">
+        <thead>
+          <tr>
+            <th style="width:50px">ลำดับ</th>
+            <th>ชื่อ – สกุล</th>
+            <th>ตำแหน่งวิชาการ/ระดับ</th>
+            <th>ตำแหน่งบริหาร</th>
+            <th>สังกัด</th>
+            <th>สายงาน</th>
+            <th>ประเภทบุคลากร</th>
+            <th>สถานะ</th>
+            <th style="width:150px">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody">
+          <tr><td colspan="9" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADD/EDIT MODAL ══ -->
+<div class="ov" id="editOv">
+  <div class="box">
+    <div class="bhd">
+      <h3 id="editTitle">เพิ่มบุคลากรใหม่</h3>
+      <button onclick="closeEditModal()">✕ ปิด</button>
+    </div>
+    <div class="bbody">
+      <div class="fgrid">
+        <div class="fg"><label>คำนำหน้า</label><input id="f-prefix" placeholder="นาย / นาง / ดร. ..."></div>
+        <div class="fg"><label>ชื่อ *</label><input id="f-firstName"></div>
+        <div class="fg"><label>ชื่อกลาง</label><input id="f-middleName"></div>
+        <div class="fg"><label>นามสกุล *</label><input id="f-lastName"></div>
+
+        <div class="fg"><label>วุฒิการศึกษา</label>
+          <input id="f-education" list="dl-edu">
+          <datalist id="dl-edu">
+            <option value="ปริญญาเอก"><option value="ปริญญาโท">
+            <option value="ปริญญาตรี"><option value="ต่ำกว่าปริญญาตรี">
+          </datalist>
+        </div>
+        <div class="fg"><label>ตำแหน่งทางวิชาการ / ระดับ</label><input id="f-academicPos" placeholder="เช่น ผู้ช่วยศาสตราจารย์"></div>
+
+        <div class="fg"><label>ตำแหน่งบริหาร</label><input id="f-adminPos" placeholder="เช่น คณบดี, ผู้อำนวยการ"></div>
+        <div class="fg"><label>ระดับสายสนับสนุน</label><input id="f-supportLevel" placeholder="เช่น ชำนาญการ"></div>
+
+        <div class="fg"><label>สังกัด (คณะ/สำนัก/สถาบัน)</label><input id="f-faculty"></div>
+        <div class="fg"><label>สังกัดย่อย/ฝ่ายงาน</label><input id="f-subUnit"></div>
+
+        <div class="fg"><label>สายงาน</label>
+          <select id="f-staffLine">
+            <option value="สายวิชาการ">สายวิชาการ</option>
+            <option value="สายสนับสนุน">สายสนับสนุน</option>
+          </select>
+        </div>
+        <div class="fg"><label>ฝ่าย/งาน (branch)</label><input id="f-branch"></div>
+
+        <div class="fg"><label>ประเภทบุคลากร</label>
+          <input id="f-employeeType" list="dl-type">
+          <datalist id="dl-type">
+            <option value="ข้าราชการ"><option value="ข้าราชการช่วยราชการ">
+            <option value="พนักงานราชการ"><option value="เต็มเวลาถาวร">
+            <option value="เต็มเวลาสัญญาจ้าง"><option value="จ้างตามภารกิจ">
+          </datalist>
+        </div>
+        <div class="fg"><label>งบประมาณ</label><input id="f-budget" placeholder="เช่น งบแผ่นดิน"></div>
+
+        <div class="fg full"><label>สถานะการปฏิบัติงาน</label>
+          <input id="f-status" list="dl-status" placeholder="ปฏิบัติงาน">
+          <datalist id="dl-status">
+            <option value="ปฏิบัติงาน"><option value="ลาศึกษาต่อ">
+            <option value="ช่วยราชการ"><option value="สิ้นสุดสัญญา">
+          </datalist>
+        </div>
+      </div>
+    </div>
+    <div class="bft">
+      <button class="btn btn-gray" onclick="closeEditModal()">ยกเลิก</button>
+      <button class="btn btn-pri" onclick="saveEdit()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ⚠️ วาง Web App URL ของ Google Apps Script (Code.gs) ที่ deploy แล้วตรงนี้
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwuPKg7raSQPI7BermlxWR-mY6U0GpfcOhnqfG5CjY7BoWtOXnpHEUS2TzMMMsN6abzeA/exec;
+
+let _pass = sessionStorage.getItem('adminPass') || '';
+let _all = [];
+
+// ── Auth ──────────────────────────────────────────────────────
+async function gasCall(action, extra) {
+  const payload = Object.assign({ action, password: _pass }, extra || {});
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload), // ไม่ตั้ง Content-Type เพื่อเลี่ยง CORS preflight (ค่า default = text/plain)
+  });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'เกิดข้อผิดพลาด');
+  return json.data;
+}
+
+async function doLogin() {
+  const pass = document.getElementById('passInput').value;
+  if (!pass) return;
+  document.getElementById('loginErr').textContent = '';
+  try {
+    _pass = pass;
+    await gasCall('login');
+    sessionStorage.setItem('adminPass', pass);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadAll();
+  } catch (e) {
+    document.getElementById('loginErr').textContent = 'รหัสผ่านไม่ถูกต้อง หรือเชื่อมต่อไม่ได้: ' + e.message;
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('adminPass');
+  location.reload();
+}
+
+// ── Load & Render ─────────────────────────────────────────────
+async function loadAll() {
+  document.getElementById('tblBody').innerHTML =
+    '<tr><td colspan="9" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>';
+  try {
+    _all = await gasCall('list');
+    renderTable();
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'โหลดข้อมูลไม่สำเร็จ', text: e.message });
+  }
+}
+
+function renderTable() {
+  const q = (document.getElementById('searchBox').value || '').trim().toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+
+  let rows = _all.filter(r => {
+    const name = (r.prefix + r.firstName + r.middleName + r.lastName + r.faculty + r.subUnit).toLowerCase();
+    if (q && !name.includes(q)) return false;
+    const isEnded = r.status === 'สิ้นสุดสัญญา';
+    if (statusF === 'active' && isEnded) return false;
+    if (statusF === 'ended' && !isEnded) return false;
+    return true;
+  });
+
+  document.getElementById('countBadge').textContent = rows.length + ' รายการ (ทั้งหมด ' + _all.length + ')';
+
+  if (!rows.length) {
+    document.getElementById('tblBody').innerHTML =
+      '<tr><td colspan="9" class="tc" style="padding:30px;color:#94a3b8;">ไม่พบข้อมูล</td></tr>';
+    return;
+  }
+
+  let h = '';
+  rows.forEach((r, i) => {
+    const isEnded = r.status === 'สิ้นสุดสัญญา';
+    const badge = isEnded
+      ? '<span class="badge badge-ended">สิ้นสุดสัญญา</span>'
+      : '<span class="badge badge-active">' + (r.status || 'ปฏิบัติงาน') + '</span>';
+    h += '<tr>' +
+      '<td class="tc">' + (i + 1) + '</td>' +
+      '<td>' + [r.prefix, r.firstName, r.middleName, r.lastName].filter(Boolean).join(' ') + '</td>' +
+      '<td>' + (r.academicPos || r.supportLevel || '-') + '</td>' +
+      '<td>' + (r.adminPos || '-') + '</td>' +
+      '<td>' + (r.faculty || '-') + '</td>' +
+      '<td>' + (r.staffLine || '-') + '</td>' +
+      '<td>' + (r.employeeType || '-') + '</td>' +
+      '<td class="tc">' + badge + '</td>' +
+      '<td class="tc">' +
+        '<button class="btn btn-sm btn-pri" onclick="openEditModal(' + r.rowNum + ')">แก้ไข</button> ' +
+        '<button class="btn btn-sm btn-red" onclick="confirmDelete(' + r.rowNum + ')">ลบ</button>' +
+      '</td>' +
+      '</tr>';
+  });
+  document.getElementById('tblBody').innerHTML = h;
+}
+
+// ── Add / Edit Modal ─────────────────────────────────────────
+const FIELDS = ['prefix','firstName','middleName','lastName','education','academicPos',
+  'adminPos','supportLevel','faculty','subUnit','staffLine','branch','employeeType','budget','status'];
+let _editRowNum = null;
+
+function openAddModal() {
+  _editRowNum = null;
+  document.getElementById('editTitle').textContent = 'เพิ่มบุคลากรใหม่';
+  FIELDS.forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = ''; });
+  document.getElementById('f-staffLine').value = 'สายวิชาการ';
+  document.getElementById('f-status').value = 'ปฏิบัติงาน';
+  document.getElementById('editOv').classList.add('on');
+}
+
+function openEditModal(rowNum) {
+  const r = _all.find(x => x.rowNum === rowNum);
+  if (!r) return;
+  _editRowNum = rowNum;
+  document.getElementById('editTitle').textContent = 'แก้ไขข้อมูล: ' + [r.firstName, r.lastName].join(' ');
+  FIELDS.forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = r[f] || ''; });
+  document.getElementById('editOv').classList.add('on');
+}
+
+function closeEditModal() {
+  document.getElementById('editOv').classList.remove('on');
+}
+
+async function saveEdit() {
+  const firstName = document.getElementById('f-firstName').value.trim();
+  const lastName  = document.getElementById('f-lastName').value.trim();
+  if (!firstName || !lastName) {
+    Swal.fire({ icon: 'warning', title: 'กรอกข้อมูลไม่ครบ', text: 'กรุณากรอกชื่อและนามสกุล' });
+    return;
+  }
+  const data = {};
+  FIELDS.forEach(f => { data[f] = document.getElementById('f-' + f).value.trim(); });
+
+  try {
+    if (_editRowNum) {
+      await gasCall('update', { rowNum: _editRowNum, data });
+    } else {
+      await gasCall('add', { data });
+    }
+    closeEditModal();
+    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1200, showConfirmButton: false });
+    loadAll();
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: e.message });
+  }
+}
+
+async function confirmDelete(rowNum) {
+  const r = _all.find(x => x.rowNum === rowNum);
+  const name = r ? [r.firstName, r.lastName].join(' ') : '';
+  const result = await Swal.fire({
+    icon: 'warning',
+    title: 'ยืนยันการลบ?',
+    text: 'ต้องการลบข้อมูลของ "' + name + '" ใช่หรือไม่ (ลบแล้วไม่สามารถกู้คืนได้)',
+    showCancelButton: true,
+    confirmButtonText: 'ลบเลย',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#dc2626',
+  });
+  if (!result.isConfirmed) return;
+  try {
+    await gasCall('delete', { rowNum });
+    Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1000, showConfirmButton: false });
+    loadAll();
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'ลบไม่สำเร็จ', text: e.message });
+  }
+}
+
+// ── Boot: ถ้ามี password เก็บไว้แล้ว ลอง login อัตโนมัติ ──
+(async function boot() {
+  if (_pass) {
+    try {
+      await gasCall('login');
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadAll();
+    } catch (e) {
+      sessionStorage.removeItem('adminPass');
+    }
+  }
+})();
+</script>
+</body>
+</html>
