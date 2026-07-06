@@ -11,9 +11,12 @@ const SHEET_NAME = process.env.SHEET_NAME || 'DATA';
 const API_KEY    = process.env.GG_KEY;
 
 // ─── ดึงข้อมูลจาก Google Sheets ─────────────────────────────
+// สถานะที่ต้อง "ไม่นับ" ในทุกเงื่อนไข/หน้าเว็บสาธารณะ
+const EXCLUDED_STATUS = 'สิ้นสุดสัญญา';
+
 async function fetchSheetData() {
   if (!API_KEY) throw new Error('GOOGLE_API_KEY ยังไม่ได้ตั้งค่าใน Environment Variables');
-  const range  = encodeURIComponent(`${SHEET_NAME}!A2:P`);
+  const range  = encodeURIComponent(`${SHEET_NAME}!A2:Q`);
   const url    = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?key=${API_KEY}`;
   const res    = await fetch(url);
   if (!res.ok) {
@@ -40,8 +43,10 @@ async function fetchSheetData() {
       branch      : String(r[13] || '').trim(),
       faculty     : String(r[14] || '').trim(),
       staffLine   : String(r[15] || '').trim(),
+      status      : String(r[16] || '').trim(), // สถานะการปฏิบัติงาน (คอลัมน์ Q)
     }))
-    .filter(r => r.firstName !== '');
+    // กรองแถวเปล่า และกรองคนที่ "สิ้นสุดสัญญา" ออกจากทุกเงื่อนไข/การนับทั้งหมด
+    .filter(r => r.firstName !== '' && r.status !== EXCLUDED_STATUS);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
