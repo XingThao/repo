@@ -223,18 +223,24 @@ h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
 
 <script>
 // ⚠️ วาง Web App URL ของ Google Apps Script (Code.gs) ที่ deploy แล้วตรงนี้
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwuPKg7raSQPI7BermlxWR-mY6U0GpfcOhnqfG5CjY7BoWtOXnpHEUS2TzMMMsN6abzeA/exec;
+const GAS_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
 let _pass = sessionStorage.getItem('adminPass') || '';
 let _all = [];
 
 // ── Auth ──────────────────────────────────────────────────────
 async function gasCall(action, extra) {
+  if (!GAS_URL || GAS_URL.indexOf('YOUR_DEPLOYMENT_ID') !== -1) {
+    throw new Error('ยังไม่ได้ตั้งค่า GAS_URL ในไฟล์ admin.html (แทนที่ YOUR_DEPLOYMENT_ID ด้วย URL จริงจากการ Deploy)');
+  }
   const payload = Object.assign({ action, password: _pass }, extra || {});
-  const res = await fetch(GAS_URL, {
-    method: 'POST',
-    body: JSON.stringify(payload), // ไม่ตั้ง Content-Type เพื่อเลี่ยง CORS preflight (ค่า default = text/plain)
-  });
+  const url = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
+  let res;
+  try {
+    res = await fetch(url);
+  } catch (e) {
+    throw new Error('เชื่อมต่อ Apps Script ไม่ได้ (ตรวจสอบ GAS_URL และการตั้งค่า Deploy: Who has access ต้องเป็น "Anyone")');
+  }
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'เกิดข้อผิดพลาด');
   return json.data;
