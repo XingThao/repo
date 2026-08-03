@@ -249,6 +249,10 @@ body.rpt-printing .dt th{background:var(--pri)!important;-webkit-print-color-adj
           </thead>
           <tbody id="tb-type"></tbody>
         </table>
+        <div class="chbox mt-6" style="max-width:420px;margin:24px auto 0;">
+          <div class="lbl">สัดส่วนบุคลากรจำแนกตามประเภท</div>
+          <div class="chw"><canvas id="ch-type"></canvas></div>
+        </div>
       </div>
     </div>
 
@@ -565,14 +569,16 @@ function doType(){
   ss('type');
   apiRun('getPersonnelByType', undefined, function(rows){
     hs('type');sc('type');
-    let h='',tA=0,tS=0,seq=1;
+    let h='',tA=0,tS=0,seq=1;const lb=[],vs=[];
     rows.forEach(r=>{
       const a=r.academic||0,s=r.support||0,t=a+s;
       tA+=a;tS+=s;
+      if(t>0){lb.push(r.type);vs.push(t);}
       h+=`<tr><td class="tc">${seq++}</td><td>${r.type}</td>${nc(a)}${nc(s)}<td class="tc font-semibold">${t||'-'}</td><td class="text-gray-500 text-xs">${r.budget||'-'}</td></tr>`;
     });
     h+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tA}</td><td class="tc">${tS}</td><td class="tc">${tA+tS}</td><td></td></tr>`;
     document.getElementById('tb-type').innerHTML=h;
+    pie('ch-type',lb,vs);
   });
 }
 
@@ -667,7 +673,8 @@ function renderSuppRk(r){
   mkCntTbl('tb-supprk','ch-supprk',r.rankCounts,['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน'],'support','rank');
   mkCntTbl('tb-suppedu','ch-suppedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี'],'support','edu');
   document.getElementById('note-supprk').textContent=
-    'บุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่งสูงขึ้นสายสนับสนุน จำนวน '+(r.noRankCount||0)+' คน';
+    'ตำแหน่งสายสนับสนุน ไม่นับรวมบุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่ง จำนวนรวมทั้งสิ้น '+(r.noRankCount||0)+' คน '+
+    'จำแนกเป็น พนักงานราชการ จำนวน '+(r.noRankGovCount||0)+' คน และ พนักงานจ้างตามภารกิจ จำนวน '+(r.noRankMissionCount||0)+' คน';
 }
 
 function mkCntTbl(tid,cid,counts,order,rankType,queryType){
@@ -1208,7 +1215,7 @@ function rptSuppPage(pgNo,title,d,sfx){
     ${rptWithChart(rptTbl(['ลำดับ','ตำแหน่งสายสนับสนุน','จำนวน (คน)','ร้อยละ'],rk.rows),cid1)}
     <div class="rpt-sub">คุณวุฒิการศึกษา (สายสนับสนุน)</div>
     ${rptWithChart(rptTbl(['ลำดับ','คุณวุฒิการศึกษา','จำนวน (คน)','ร้อยละ'],edu.rows),cid2)}
-    <div class="nb" style="margin-top:10px;">บุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่งสูงขึ้น จำนวน ${d.noRankCount||0} คน</div>`);
+    <div class="nb" style="margin-top:10px;">ตำแหน่งสายสนับสนุน ไม่นับรวมบุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่ง จำนวนรวมทั้งสิ้น ${d.noRankCount||0} คน จำแนกเป็น พนักงานราชการ จำนวน ${d.noRankGovCount||0} คน และ พนักงานจ้างตามภารกิจ จำนวน ${d.noRankMissionCount||0} คน</div>`);
 }
 
 // ── build all 23 pages ──────────────────────────────────────────
