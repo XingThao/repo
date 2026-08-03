@@ -379,10 +379,10 @@ async function getAllBySubUnit(data, subUnitFilter) {
 // queryType : 'rank' (ตำแหน่ง) | 'edu' (คุณวุฒิ)
 // rankName  : เช่น 'ศาสตราจารย์', 'ปริญญาเอก'
 // facultyFilter: 'all' | ชื่อสังกัด
-const EDU_KEYS = ['ปริญญาเอก','ปริญญาโท','ปริญญาตรี'];
+const EDU_ORDER = ['ปริญญาเอก','ปริญญาโท','ต่ำกว่าปริญญาตรี','ปริญญาตรี'];
 function matchEdu(education, eduName) {
-  if (eduName === 'ต่ำกว่าปริญญาตรี') return !EDU_KEYS.some(e => education.includes(e));
-  return education.includes(eduName);
+  const matched = EDU_ORDER.find(k => education.includes(k)) || 'ต่ำกว่าปริญญาตรี';
+  return matched === eduName;
 }
 
 async function getPersonnelByRank(data, rankType, queryType, rankName, facultyFilter) {
