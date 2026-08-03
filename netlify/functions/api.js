@@ -263,14 +263,22 @@ async function getSupportRankAndEducation(data, facultyFilter) {
   const rankOrder  = ['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน'];
   const rankCounts = {};
   rankOrder.forEach(k => rankCounts[k] = 0);
-  let noRankCount = 0, noRankGovCount = 0, noRankMissionCount = 0;
+  let noRankCount = 0, noRankGovCount = 0, noRankMissionCount = 0, noRankOtherCount = 0;
+  const noRankOtherTypes = {};
   filtered.forEach(r => {
     const k = rankOrder.find(x => r.supportLevel.includes(x));
     if (k) rankCounts[k]++;
     else {
       noRankCount++;
-      if (r.employeeType.includes('พนักงานราชการ')) noRankGovCount++;
-      else if (r.employeeType.includes('จ้างตามภารกิจ')) noRankMissionCount++;
+      if (r.employeeType.includes('พนักงานราชการ')) {
+        noRankGovCount++;
+      } else if (r.employeeType.includes('จ้างตามภารกิจ')) {
+        noRankMissionCount++;
+      } else {
+        noRankOtherCount++;
+        const label = r.employeeType || '(ไม่ระบุประเภทบุคลากร)';
+        noRankOtherTypes[label] = (noRankOtherTypes[label] || 0) + 1;
+      }
     }
   });
   const eduOrder  = ['ปริญญาเอก','ปริญญาโท','ต่ำกว่าปริญญาตรี','ปริญญาตรี'];
@@ -279,7 +287,7 @@ async function getSupportRankAndEducation(data, facultyFilter) {
   filtered.forEach(r => {
     eduCounts[eduOrder.find(k => r.education.includes(k)) || 'ต่ำกว่าปริญญาตรี']++;
   });
-  return { rankCounts, eduCounts, noRankCount, noRankGovCount, noRankMissionCount, faculties: uniqueFaculties(data) };
+  return { rankCounts, eduCounts, noRankCount, noRankGovCount, noRankMissionCount, noRankOtherCount, noRankOtherTypes, faculties: uniqueFaculties(data) };
 }
 
 async function getExecutives(data) {
