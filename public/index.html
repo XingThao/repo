@@ -672,10 +672,42 @@ function renderSuppRk(r){
   hs('supprk');sc('supprk');
   mkCntTbl('tb-supprk','ch-supprk',r.rankCounts,['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน'],'support','rank');
   mkCntTbl('tb-suppedu','ch-suppedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี'],'support','edu');
-  document.getElementById('note-supprk').textContent=
+  const otherList = r.noRankOtherList || [];
+  window._suppOtherList = otherList; // เก็บไว้ให้ showNoRankOtherList เรียกใช้
+  const otherHtml = otherList.length>0
+    ? ' และ<a href="#" style="color:#2a5cad;text-decoration:underline;" onclick="showNoRankOtherList();return false;">อื่นๆ จำนวน '+otherList.length+' คน</a>'
+    : '';
+  document.getElementById('note-supprk').innerHTML=
     'ตำแหน่งสายสนับสนุน ไม่นับรวมบุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่ง จำนวนรวมทั้งสิ้น '+(r.noRankCount||0)+' คน '+
     'จำแนกเป็น พนักงานราชการ จำนวน '+(r.noRankGovCount||0)+' คน และ พนักงานจ้างตามภารกิจ จำนวน '+(r.noRankMissionCount||0)+' คน'+
-    ((r.noRankOtherCount||0)>0 ? ' และอื่นๆ จำนวน '+r.noRankOtherCount+' คน' : '');
+    otherHtml;
+}
+function showNoRankOtherList(){
+  const list = window._suppOtherList || [];
+  if(list.length===0) return;
+  const rows = list.map(p=>
+    `<tr><td style="padding:4px 8px;border-bottom:1px solid #eee;">${p.rowNum}</td>`+
+    `<td style="padding:4px 8px;border-bottom:1px solid #eee;">${p.fullName}</td>`+
+    `<td style="padding:4px 8px;border-bottom:1px solid #eee;">${p.faculty}</td>`+
+    `<td style="padding:4px 8px;border-bottom:1px solid #eee;">${p.employeeType}</td>`+
+    `<td style="padding:4px 8px;border-bottom:1px solid #eee;">${p.supportLevel}</td></tr>`
+  ).join('');
+  Swal.fire({
+    title: 'รายชื่อกลุ่ม "อื่นๆ" ('+list.length+' คน)',
+    width: 700,
+    html: `<div style="max-height:400px;overflow:auto;text-align:left;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="background:#f1f5f9;">
+          <th style="padding:4px 8px;text-align:left;">แถวในชีท</th>
+          <th style="padding:4px 8px;text-align:left;">ชื่อ-สกุล</th>
+          <th style="padding:4px 8px;text-align:left;">สังกัด</th>
+          <th style="padding:4px 8px;text-align:left;">ประเภทบุคลากร</th>
+          <th style="padding:4px 8px;text-align:left;">ระดับสายสนับสนุน</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`,
+  });
 }
 
 function mkCntTbl(tid,cid,counts,order,rankType,queryType){
