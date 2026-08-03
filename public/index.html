@@ -674,7 +674,8 @@ function renderSuppRk(r){
   mkCntTbl('tb-suppedu','ch-suppedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี'],'support','edu');
   document.getElementById('note-supprk').textContent=
     'ตำแหน่งสายสนับสนุน ไม่นับรวมบุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่ง จำนวนรวมทั้งสิ้น '+(r.noRankCount||0)+' คน '+
-    'จำแนกเป็น พนักงานราชการ จำนวน '+(r.noRankGovCount||0)+' คน และ พนักงานจ้างตามภารกิจ จำนวน '+(r.noRankMissionCount||0)+' คน';
+    'จำแนกเป็น พนักงานราชการ จำนวน '+(r.noRankGovCount||0)+' คน และ พนักงานจ้างตามภารกิจ จำนวน '+(r.noRankMissionCount||0)+' คน'+
+    ((r.noRankOtherCount||0)>0 ? ' และอื่นๆ จำนวน '+r.noRankOtherCount+' คน' : '');
 }
 
 function mkCntTbl(tid,cid,counts,order,rankType,queryType){
@@ -1215,7 +1216,7 @@ function rptSuppPage(pgNo,title,d,sfx){
     ${rptWithChart(rptTbl(['ลำดับ','ตำแหน่งสายสนับสนุน','จำนวน (คน)','ร้อยละ'],rk.rows),cid1)}
     <div class="rpt-sub">คุณวุฒิการศึกษา (สายสนับสนุน)</div>
     ${rptWithChart(rptTbl(['ลำดับ','คุณวุฒิการศึกษา','จำนวน (คน)','ร้อยละ'],edu.rows),cid2)}
-    <div class="nb" style="margin-top:10px;">ตำแหน่งสายสนับสนุน ไม่นับรวมบุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่ง จำนวนรวมทั้งสิ้น ${d.noRankCount||0} คน จำแนกเป็น พนักงานราชการ จำนวน ${d.noRankGovCount||0} คน และ พนักงานจ้างตามภารกิจ จำนวน ${d.noRankMissionCount||0} คน</div>`);
+    <div class="nb" style="margin-top:10px;">ตำแหน่งสายสนับสนุน ไม่นับรวมบุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่ง จำนวนรวมทั้งสิ้น ${d.noRankCount||0} คน จำแนกเป็น พนักงานราชการ จำนวน ${d.noRankGovCount||0} คน และ พนักงานจ้างตามภารกิจ จำนวน ${d.noRankMissionCount||0} คน${(d.noRankOtherCount||0)>0 ? ' และอื่นๆ จำนวน '+d.noRankOtherCount+' คน' : ''}</div>`);
 }
 
 // ── build all 23 pages ──────────────────────────────────────────
