@@ -265,6 +265,7 @@ async function getSupportRankAndEducation(data, facultyFilter) {
   rankOrder.forEach(k => rankCounts[k] = 0);
   let noRankCount = 0, noRankGovCount = 0, noRankMissionCount = 0, noRankOtherCount = 0;
   const noRankOtherTypes = {};
+  const noRankOtherList = [];
   filtered.forEach(r => {
     const k = rankOrder.find(x => r.supportLevel.includes(x));
     if (k) rankCounts[k]++;
@@ -278,6 +279,14 @@ async function getSupportRankAndEducation(data, facultyFilter) {
         noRankOtherCount++;
         const label = r.employeeType || '(ไม่ระบุประเภทบุคลากร)';
         noRankOtherTypes[label] = (noRankOtherTypes[label] || 0) + 1;
+        const mid = r.middleName ? r.middleName + ' ' : '';
+        noRankOtherList.push({
+          rowNum      : r.rowNum,                                  // แถวในชีท (นับรวมหัวตาราง 1 แถว)
+          fullName    : ((r.prefix ? r.prefix + ' ' : '') + r.firstName + ' ' + mid + r.lastName).trim(),
+          employeeType: r.employeeType || '(ไม่ระบุประเภทบุคลากร)',
+          supportLevel: r.supportLevel || '(ไม่ระบุระดับ)',
+          faculty     : r.faculty || r.subUnit || 'ไม่ระบุ',
+        });
       }
     }
   });
@@ -287,7 +296,7 @@ async function getSupportRankAndEducation(data, facultyFilter) {
   filtered.forEach(r => {
     eduCounts[eduOrder.find(k => r.education.includes(k)) || 'ต่ำกว่าปริญญาตรี']++;
   });
-  return { rankCounts, eduCounts, noRankCount, noRankGovCount, noRankMissionCount, noRankOtherCount, noRankOtherTypes, faculties: uniqueFaculties(data) };
+  return { rankCounts, eduCounts, noRankCount, noRankGovCount, noRankMissionCount, noRankOtherCount, noRankOtherTypes, noRankOtherList, faculties: uniqueFaculties(data) };
 }
 
 async function getExecutives(data) {
