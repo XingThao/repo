@@ -8,7 +8,6 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -67,6 +66,8 @@ h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
 .dt td{padding:8px 13px;border:1px solid #e4eaf4;vertical-align:middle;}
 .dt tbody tr:nth-child(even) td{background:#f6f9fd;}
 .dt tbody tr:hover td{background:#e8f0fe;}
+.clk-row{cursor:pointer;}
+.clk-row:hover td{background:#dbeafe!important;}
 .dt .tot td{background:#fef9ec!important;font-weight:700;color:var(--pri);border-top:2px solid var(--gld);}
 .tc{text-align:center!important;}
 
@@ -249,10 +250,6 @@ body.rpt-printing .dt th{background:var(--pri)!important;-webkit-print-color-adj
           </thead>
           <tbody id="tb-type"></tbody>
         </table>
-        <div class="chbox mt-6" style="max-width:420px;margin:24px auto 0;">
-          <div class="lbl">สัดส่วนบุคลากรจำแนกตามประเภท</div>
-          <div class="chw"><canvas id="ch-type"></canvas></div>
-        </div>
       </div>
     </div>
 
@@ -452,13 +449,6 @@ body.rpt-printing .dt th{background:var(--pri)!important;-webkit-print-color-adj
         <select class="fs" id="sel-lst" onchange="loadLst()">
           <option value="all">— ทั้งหมด —</option>
         </select>
-        <button class="btn-prt" onclick="exportLstExcel()" style="margin-left:auto;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <path d="M9.5 12.5l5 5M14.5 12.5l-5 5"/>
-          </svg>ส่งออก Excel
-        </button>
       </div>
 
       <div id="sk-lst" class="space-y-2">
@@ -565,20 +555,47 @@ function nc(v){return `<td class="tc">${v>0?v:'-'}</td>`;}
 function pp(c,t){return t>0?((c/t)*100).toFixed(2)+'%':'0.00%';}
 
 // ─── 4.1.1 ───────────────────────────────────────────────────────
+let _typeRows=[];
 function doType(){
   ss('type');
   apiRun('getPersonnelByType', undefined, function(rows){
     hs('type');sc('type');
-    let h='',tA=0,tS=0,seq=1;const lb=[],vs=[];
-    rows.forEach(r=>{
+    _typeRows=rows;
+    let h='',tA=0,tS=0,seq=1;
+    rows.forEach((r,idx)=>{
       const a=r.academic||0,s=r.support||0,t=a+s;
       tA+=a;tS+=s;
-      if(t>0){lb.push(r.type);vs.push(t);}
-      h+=`<tr><td class="tc">${seq++}</td><td>${r.type}</td>${nc(a)}${nc(s)}<td class="tc font-semibold">${t||'-'}</td><td class="text-gray-500 text-xs">${r.budget||'-'}</td></tr>`;
+      h+=`<tr class="clk-row" onclick="showTypeMembers(${idx})" title="คลิกเพื่อดูรายชื่อ">
+            <td class="tc">${seq++}</td><td>${r.type}</td>${nc(a)}${nc(s)}<td class="tc font-semibold">${t||'-'}</td><td class="text-gray-500 text-xs">${r.budget||'-'}</td></tr>`;
     });
     h+=`<tr class="tot"><td colspan="2" class="tc font-bold">รวมทั้งสิ้น</td><td class="tc">${tA}</td><td class="tc">${tS}</td><td class="tc">${tA+tS}</td><td></td></tr>`;
     document.getElementById('tb-type').innerHTML=h;
-    pie('ch-type',lb,vs);
+  });
+}
+
+function showTypeMembers(idx){
+  const r=_typeRows[idx];
+  if(!r) return;
+  const members=(r.members||[]).slice().sort((a,b)=>a.fullName.localeCompare(b.fullName,'th'));
+  const rowsHtml=members.map((m,i)=>`
+    <tr>
+      <td class="tc">${i+1}</td>
+      <td style="text-align:left">${m.fullName}</td>
+      <td style="text-align:left">${m.position||'-'}</td>
+      <td style="text-align:left">${m.faculty||'-'}</td>
+    </tr>`).join('');
+  const html=`
+    <div style="max-height:60vh;overflow-y:auto;text-align:left;">
+      <table class="dt" style="width:100%;font-size:12.5px;">
+        <thead><tr><th style="width:40px">ลำดับ</th><th>ชื่อ – สกุล</th><th>ตำแหน่ง</th><th>สังกัด</th></tr></thead>
+        <tbody>${rowsHtml||'<tr><td colspan="4" class="tc" style="padding:16px;color:#94a3b8;">ไม่พบข้อมูล</td></tr>'}</tbody>
+      </table>
+    </div>`;
+  Swal.fire({
+    title: r.type+(r.budget?' ('+r.budget+')':'')+' — '+members.length+' คน',
+    html: html,
+    width: 680,
+    confirmButtonText: 'ปิด',
   });
 }
 
@@ -672,42 +689,8 @@ function renderSuppRk(r){
   hs('supprk');sc('supprk');
   mkCntTbl('tb-supprk','ch-supprk',r.rankCounts,['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน'],'support','rank');
   mkCntTbl('tb-suppedu','ch-suppedu',r.eduCounts,['ปริญญาเอก','ปริญญาโท','ปริญญาตรี','ต่ำกว่าปริญญาตรี'],'support','edu');
-  const otherList = r.noRankOtherList || [];
-  window._suppOtherList = otherList; // เก็บไว้ให้ showNoRankOtherList เรียกใช้
-  const otherHtml = otherList.length>0
-    ? ' และ<a href="#" style="color:#2a5cad;text-decoration:underline;" onclick="showNoRankOtherList();return false;">อื่นๆ จำนวน '+otherList.length+' คน</a>'
-    : '';
-  document.getElementById('note-supprk').innerHTML=
-    'ตำแหน่งสายสนับสนุน ไม่นับรวมบุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่ง จำนวนรวมทั้งสิ้น '+(r.noRankCount||0)+' คน '+
-    'จำแนกเป็น พนักงานราชการ จำนวน '+(r.noRankGovCount||0)+' คน และ พนักงานจ้างตามภารกิจ จำนวน '+(r.noRankMissionCount||0)+' คน'+
-    otherHtml;
-}
-function showNoRankOtherList(){
-  const list = window._suppOtherList || [];
-  if(list.length===0) return;
-  const rows = list.map(p=>
-    `<tr><td style="padding:4px 8px;border-bottom:1px solid #eee;">${p.rowNum}</td>`+
-    `<td style="padding:4px 8px;border-bottom:1px solid #eee;">${p.fullName}</td>`+
-    `<td style="padding:4px 8px;border-bottom:1px solid #eee;">${p.faculty}</td>`+
-    `<td style="padding:4px 8px;border-bottom:1px solid #eee;">${p.employeeType}</td>`+
-    `<td style="padding:4px 8px;border-bottom:1px solid #eee;">${p.supportLevel}</td></tr>`
-  ).join('');
-  Swal.fire({
-    title: 'รายชื่อกลุ่ม "อื่นๆ" ('+list.length+' คน)',
-    width: 700,
-    html: `<div style="max-height:400px;overflow:auto;text-align:left;">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead><tr style="background:#f1f5f9;">
-          <th style="padding:4px 8px;text-align:left;">แถวในชีท</th>
-          <th style="padding:4px 8px;text-align:left;">ชื่อ-สกุล</th>
-          <th style="padding:4px 8px;text-align:left;">สังกัด</th>
-          <th style="padding:4px 8px;text-align:left;">ประเภทบุคลากร</th>
-          <th style="padding:4px 8px;text-align:left;">ระดับสายสนับสนุน</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`,
-  });
+  document.getElementById('note-supprk').textContent=
+    'บุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่งสูงขึ้นสายสนับสนุน จำนวน '+(r.noRankCount||0)+' คน';
 }
 
 function mkCntTbl(tid,cid,counts,order,rankType,queryType){
@@ -981,149 +964,6 @@ function buildUnitBlock(unitName, sections){
   return h;
 }
 
-// ─── Export Excel (รายชื่อตามสังกัด) ────────────────────────────────
-function _lstRowsFromSections(sections, kind){
-  // kind: 'fac' | 'unit' — เกณฑ์ตัวหนาแถวหัวหน้าต่างกันเล็กน้อยตาม buildFacBlock/buildUnitBlock เดิม
-  let rows=[];
-  (sections||[]).forEach(sec=>{
-    if(sec.isDean){
-      sec.members.forEach(m=> rows.push({type:'dean', m}));
-    } else {
-      rows.push({type:'branch-hdr', label: sec.label});
-      const isHeadFn = kind==='unit'
-        ? m => m.adminPos && (m.adminPos.includes('ประธาน') || m.adminPos.includes('หัวหน้า'))
-        : m => m.adminPos && m.adminPos.includes('ประธาน');
-      const sorted=[
-        ...sec.members.filter(isHeadFn),
-        ...sec.members.filter(m=>!isHeadFn(m)),
-      ];
-      sorted.forEach(m=> rows.push({type:'member', m, isHead:isHeadFn(m)}));
-    }
-  });
-  return rows;
-}
-
-function _xlSafeSheetName(name, used){
-  let n = String(name||'ไม่ระบุ').replace(/[\\\/\?\*\[\]:]/g,' ').trim().slice(0,31) || 'Sheet';
-  let base=n, i=2;
-  while(used.has(n)){ const suf=` (${i++})`; n = base.slice(0, 31-suf.length)+suf; }
-  used.add(n);
-  return n;
-}
-
-function _xlBuildSheet(wb, usedNames, title, sections, kind){
-  const rows = _lstRowsFromSections(sections, kind);
-  if(!rows.length) return;
-
-  const ws = wb.addWorksheet(_xlSafeSheetName(title, usedNames), {
-    views:[{ state:'frozen', ySplit:3 }]
-  });
-  ws.columns = [
-    { width:8 }, { width:38 }, { width:32 }, { width:26 }
-  ];
-
-  // แถวชื่อคณะ/หน่วยงาน
-  ws.mergeCells('A1:D1');
-  const t = ws.getCell('A1');
-  t.value = title;
-  t.font = { name:'Tahoma', size:14, bold:true, color:{argb:'FFFFFFFF'} };
-  t.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1B3D6F'} };
-  t.alignment = { vertical:'middle', horizontal:'left' };
-  ws.getRow(1).height = 24;
-
-  // แถววันที่
-  ws.mergeCells('A2:D2');
-  const d = ws.getCell('A2');
-  d.value = 'ข้อมูล ณ วันที่ ' + thaiDate();
-  d.font = { name:'Tahoma', size:10, italic:true, color:{argb:'FF64748B'} };
-  d.alignment = { vertical:'middle', horizontal:'left' };
-
-  // หัวตาราง
-  const hdr = ws.addRow(['ลำดับ','ชื่อ – สกุล','ตำแหน่ง','ตำแหน่งบริหาร']);
-  hdr.eachCell(c=>{
-    c.font = { name:'Tahoma', size:11, bold:true, color:{argb:'FFFFFFFF'} };
-    c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1B3D6F'} };
-    c.alignment = { vertical:'middle', horizontal:'center' };
-    c.border = { top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'} };
-  });
-
-  const thin = { style:'thin', color:{argb:'FFE4EAF4'} };
-  let seq=1;
-  rows.forEach(row=>{
-    let r;
-    if(row.type==='branch-hdr'){
-      r = ws.addRow(['', row.label, '', '']);
-      ws.mergeCells(`B${r.number}:D${r.number}`);
-      r.eachCell(c=>{
-        c.font = { name:'Tahoma', size:10.5, bold:true, color:{argb:'FF1E3A8A'} };
-        c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFDBEAFE'} };
-        c.border = { top:thin,bottom:thin,left:thin,right:thin };
-      });
-    } else {
-      const m = row.m;
-      r = ws.addRow([seq++, m.fullName||'', m.position||'-', m.adminPos||'-']);
-      let fill=null, bold=false, color='FF1E293B';
-      if(row.type==='dean'){ fill='FFFEF3C7'; bold=true; }
-      else if(row.isHead){ fill='FFF0FDF4'; bold=true; }
-      r.eachCell((c,colNo)=>{
-        c.font = { name:'Tahoma', size:10.5, bold, color:{argb:color} };
-        c.alignment = colNo===1 ? { horizontal:'center' } : { horizontal:'left', wrapText:true };
-        c.border = { top:thin,bottom:thin,left:thin,right:thin };
-        if(fill) c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:fill} };
-      });
-    }
-  });
-}
-
-async function exportLstExcel(){
-  if(typeof ExcelJS==='undefined'){
-    Swal.fire({icon:'error',title:'ผิดพลาด',text:'โหลดไลบรารี Excel ไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'});
-    return;
-  }
-  const filter = document.getElementById('sel-lst').value;
-  const wb = new ExcelJS.Workbook();
-  wb.creator = 'ระบบสารสนเทศบุคลากร มหาวิทยาลัยราชภัฏศรีสะเกษ';
-  wb.created = new Date();
-  const used = new Set();
-  let fileTag = 'ทั้งหมด';
-
-  Swal.fire({title:'กำลังสร้างไฟล์ Excel…', allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
-
-  try{
-    if(filter==='all'){
-      _lstFacKeys.forEach(k=> _xlBuildSheet(wb, used, k, _lstFacData[k]||[], 'fac'));
-      _lstUnitKeys.forEach(k=> _xlBuildSheet(wb, used, k, _lstUnitData[k]||[], 'unit'));
-    } else if(filter.startsWith('fac:')){
-      const k=filter.slice(4);
-      _xlBuildSheet(wb, used, k, _lstFacData[k]||[], 'fac');
-      fileTag = k;
-    } else if(filter.startsWith('unit:')){
-      const k=filter.slice(5);
-      _xlBuildSheet(wb, used, k, _lstUnitData[k]||[], 'unit');
-      fileTag = k;
-    }
-
-    if(!wb.worksheets.length){
-      Swal.close();
-      Swal.fire({icon:'info',title:'ไม่พบข้อมูล',text:'ไม่มีรายชื่อสำหรับส่งออก'});
-      return;
-    }
-
-    const buf = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `รายชื่อบุคลากร_${fileTag}_${thaiDate().replace(/\s+/g,'')}.xlsx`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-    Swal.close();
-  }catch(e){
-    Swal.close();
-    Swal.fire({icon:'error',title:'สร้างไฟล์ไม่สำเร็จ',text:e.message});
-  }
-}
-
 // ─── Utils ────────────────────────────────────────────────────────
 function fillSel(id,opts){
   const s=document.getElementById(id);
@@ -1248,7 +1088,7 @@ function rptSuppPage(pgNo,title,d,sfx){
     ${rptWithChart(rptTbl(['ลำดับ','ตำแหน่งสายสนับสนุน','จำนวน (คน)','ร้อยละ'],rk.rows),cid1)}
     <div class="rpt-sub">คุณวุฒิการศึกษา (สายสนับสนุน)</div>
     ${rptWithChart(rptTbl(['ลำดับ','คุณวุฒิการศึกษา','จำนวน (คน)','ร้อยละ'],edu.rows),cid2)}
-    <div class="nb" style="margin-top:10px;">ตำแหน่งสายสนับสนุน ไม่นับรวมบุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่ง จำนวนรวมทั้งสิ้น ${d.noRankCount||0} คน จำแนกเป็น พนักงานราชการ จำนวน ${d.noRankGovCount||0} คน และ พนักงานจ้างตามภารกิจ จำนวน ${d.noRankMissionCount||0} คน${(d.noRankOtherCount||0)>0 ? ' และอื่นๆ จำนวน '+d.noRankOtherCount+' คน' : ''}</div>`);
+    <div class="nb" style="margin-top:10px;">บุคลากรที่ไม่เข้าหลักเกณฑ์การขอกำหนดตำแหน่งสูงขึ้น จำนวน ${d.noRankCount||0} คน</div>`);
 }
 
 // ── build all 23 pages ──────────────────────────────────────────
