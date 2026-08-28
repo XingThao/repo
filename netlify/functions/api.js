@@ -97,8 +97,7 @@ function buildFacultyMemberName(r) {
 }
 
 function buildFacultyMemberPos(r) {
-  if (deanScore(r.adminPos) < 9) return r.adminPos;
-  if (isAcademic(r.staffLine))   return r.academicPos;
+  if (isAcademic(r.staffLine)) return r.academicPos;
   if (isSupport(r.staffLine)) {
     return r.supportLevel.includes('ชำนาญการ')
       ? (r.academicPos + ' ' + r.supportLevel).trim()
@@ -118,7 +117,6 @@ function buildUnitMemberName(r) {
 }
 
 function buildUnitMemberPos(r) {
-  if (directorScore(r.adminPos) < 9) return r.adminPos;
   if (isSupport(r.staffLine)) {
     return r.supportLevel.includes('ชำนาญการ')
       ? (r.academicPos + ' ' + r.supportLevel).trim()
@@ -182,9 +180,14 @@ async function getPersonnelByType(data) {
   const map = {};
   data.forEach(r => {
     const key = r.employeeType + '|||' + r.budget;
-    if (!map[key]) map[key] = { type: r.employeeType, budget: r.budget, academic: 0, support: 0 };
+    if (!map[key]) map[key] = { type: r.employeeType, budget: r.budget, academic: 0, support: 0, members: [] };
     if (isAcademic(r.staffLine)) map[key].academic++;
     if (isSupport(r.staffLine))  map[key].support++;
+    map[key].members.push({
+      fullName: buildFacultyMemberName(r),
+      position: buildFacultyMemberPos(r) || '-',
+      faculty : r.faculty || '-',
+    });
   });
   const typeOrder = ['ข้าราชการ','ข้าราชการช่วยราชการ','พนักงานราชการ','เต็มเวลาถาวร','เต็มเวลาสัญญาจ้าง','จ้างตามภารกิจ'];
   return Object.values(map).sort((a, b) => {
@@ -263,32 +266,11 @@ async function getSupportRankAndEducation(data, facultyFilter) {
   const rankOrder  = ['ชำนาญการพิเศษ','ชำนาญการ','ปฏิบัติการ','ปฏิบัติงาน'];
   const rankCounts = {};
   rankOrder.forEach(k => rankCounts[k] = 0);
-  let noRankCount = 0, noRankGovCount = 0, noRankMissionCount = 0, noRankOtherCount = 0;
-  const noRankOtherTypes = {};
-  const noRankOtherList = [];
+  let noRankCount = 0;
   filtered.forEach(r => {
     const k = rankOrder.find(x => r.supportLevel.includes(x));
     if (k) rankCounts[k]++;
-    else {
-      noRankCount++;
-      if (r.employeeType.includes('พนักงานราชการ')) {
-        noRankGovCount++;
-      } else if (r.employeeType.includes('จ้างตามภารกิจ')) {
-        noRankMissionCount++;
-      } else {
-        noRankOtherCount++;
-        const label = r.employeeType || '(ไม่ระบุประเภทบุคลากร)';
-        noRankOtherTypes[label] = (noRankOtherTypes[label] || 0) + 1;
-        const mid = r.middleName ? r.middleName + ' ' : '';
-        noRankOtherList.push({
-          rowNum      : r.rowNum,                                  // แถวในชีท (นับรวมหัวตาราง 1 แถว)
-          fullName    : ((r.prefix ? r.prefix + ' ' : '') + r.firstName + ' ' + mid + r.lastName).trim(),
-          employeeType: r.employeeType || '(ไม่ระบุประเภทบุคลากร)',
-          supportLevel: r.supportLevel || '(ไม่ระบุระดับ)',
-          faculty     : r.faculty || r.subUnit || 'ไม่ระบุ',
-        });
-      }
-    }
+    else   noRankCount++;
   });
   const eduOrder  = ['ปริญญาเอก','ปริญญาโท','ต่ำกว่าปริญญาตรี','ปริญญาตรี'];
   const eduCounts = {};
@@ -296,7 +278,7 @@ async function getSupportRankAndEducation(data, facultyFilter) {
   filtered.forEach(r => {
     eduCounts[eduOrder.find(k => r.education.includes(k)) || 'ต่ำกว่าปริญญาตรี']++;
   });
-  return { rankCounts, eduCounts, noRankCount, noRankGovCount, noRankMissionCount, noRankOtherCount, noRankOtherTypes, noRankOtherList, faculties: uniqueFaculties(data) };
+  return { rankCounts, eduCounts, noRankCount, faculties: uniqueFaculties(data) };
 }
 
 async function getExecutives(data) {
@@ -388,10 +370,10 @@ async function getAllBySubUnit(data, subUnitFilter) {
 // queryType : 'rank' (ตำแหน่ง) | 'edu' (คุณวุฒิ)
 // rankName  : เช่น 'ศาสตราจารย์', 'ปริญญาเอก'
 // facultyFilter: 'all' | ชื่อสังกัด
-const EDU_ORDER = ['ปริญญาเอก','ปริญญาโท','ต่ำกว่าปริญญาตรี','ปริญญาตรี'];
+const EDU_KEYS = ['ปริญญาเอก','ปริญญาโท','ปริญญาตรี'];
 function matchEdu(education, eduName) {
-  const matched = EDU_ORDER.find(k => education.includes(k)) || 'ต่ำกว่าปริญญาตรี';
-  return matched === eduName;
+  if (eduName === 'ต่ำกว่าปริญญาตรี') return !EDU_KEYS.some(e => education.includes(e));
+  return education.includes(eduName);
 }
 
 async function getPersonnelByRank(data, rankType, queryType, rankName, facultyFilter) {
