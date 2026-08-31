@@ -146,12 +146,13 @@ h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
             <th>สังกัด</th>
             <th>สายงาน</th>
             <th>ประเภทบุคลากร</th>
+            <th>อายุงาน</th>
             <th>สถานะ</th>
             <th style="width:150px">จัดการ</th>
           </tr>
         </thead>
         <tbody id="tblBody">
-          <tr><td colspan="9" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>
+          <tr><td colspan="10" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>
         </tbody>
       </table>
     </div>
@@ -212,6 +213,25 @@ h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
             <option value="ช่วยราชการ"><option value="สิ้นสุดสัญญา">
           </datalist>
         </div>
+
+        <div class="fg"><label>วันเริ่มงาน</label><input type="date" id="f-startDate" onchange="updateTenurePreview()"></div>
+        <div class="fg"><label>วันสิ้นสุดสัญญา</label><input type="date" id="f-contractEndDate"></div>
+        <div class="fg full" id="tenurePreviewWrap" style="display:none;">
+          <label>อายุงาน (คำนวณอัตโนมัติ นับถึงวันนี้)</label>
+          <input id="tenurePreview" disabled style="background:#f1f5f9;color:#64748b;">
+        </div>
+      </div>
+
+      <div style="margin-top:22px;padding-top:18px;border-top:1px dashed #cbd5e1;">
+        <div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px;">🔑 บัญชีผู้ใช้สำหรับพนักงาน (เข้าหน้า user.html)</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;" id="empIdNote">บันทึกข้อมูลบุคลากรก่อน จึงจะตั้งบัญชีผู้ใช้ได้</div>
+        <div class="fgrid">
+          <div class="fg"><label>Username</label><input id="f-acctUsername" autocomplete="off"></div>
+          <div class="fg"><label>ตั้ง/เปลี่ยน Password</label><input id="f-acctPassword" type="text" placeholder="เว้นว่าง = ไม่เปลี่ยนรหัสผ่านเดิม" autocomplete="off"></div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-sm btn-gld" id="btnSetCreds" onclick="saveCredentials()" disabled>บันทึกบัญชีผู้ใช้</button>
+        </div>
       </div>
     </div>
     <div class="bft">
@@ -270,7 +290,7 @@ function doLogout() {
 // ── Load & Render ─────────────────────────────────────────────
 async function loadAll() {
   document.getElementById('tblBody').innerHTML =
-    '<tr><td colspan="9" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>';
+    '<tr><td colspan="10" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>';
   try {
     _all = await gasCall('list');
     renderTable();
@@ -296,7 +316,7 @@ function renderTable() {
 
   if (!rows.length) {
     document.getElementById('tblBody').innerHTML =
-      '<tr><td colspan="9" class="tc" style="padding:30px;color:#94a3b8;">ไม่พบข้อมูล</td></tr>';
+      '<tr><td colspan="10" class="tc" style="padding:30px;color:#94a3b8;">ไม่พบข้อมูล</td></tr>';
     return;
   }
 
@@ -314,6 +334,7 @@ function renderTable() {
       '<td>' + (r.faculty || '-') + '</td>' +
       '<td>' + (r.staffLine || '-') + '</td>' +
       '<td>' + (r.employeeType || '-') + '</td>' +
+      '<td style="font-size:12px;">' + (r.tenureDisplay || '-') + '</td>' +
       '<td class="tc">' + badge + '</td>' +
       '<td class="tc">' +
         '<button class="btn btn-sm btn-pri" onclick="openEditModal(' + r.rowNum + ')">แก้ไข</button> ' +
@@ -326,24 +347,60 @@ function renderTable() {
 
 // ── Add / Edit Modal ─────────────────────────────────────────
 const FIELDS = ['prefix','firstName','middleName','lastName','education','academicPos',
-  'adminPos','supportLevel','faculty','subUnit','staffLine','branch','employeeType','budget','status'];
+  'adminPos','supportLevel','faculty','subUnit','staffLine','branch','employeeType','budget','status',
+  'startDate','contractEndDate'];
 let _editRowNum = null;
+let _editEmpId = null;
+
+function updateTenurePreview() {
+  const start = document.getElementById('f-startDate').value;
+  const wrap = document.getElementById('tenurePreviewWrap');
+  if (!start) { wrap.style.display = 'none'; return; }
+  const s = new Date(start), now = new Date();
+  let y = now.getFullYear() - s.getFullYear(), m = now.getMonth() - s.getMonth(), d = now.getDate() - s.getDate();
+  if (d < 0) { m--; d += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+  if (m < 0) { y--; m += 12; }
+  wrap.style.display = '';
+  document.getElementById('tenurePreview').value = (y < 0) ? '—' : (y + ' ปี ' + m + ' เดือน ' + d + ' วัน');
+}
 
 function openAddModal() {
   _editRowNum = null;
+  _editEmpId = null;
   document.getElementById('editTitle').textContent = 'เพิ่มบุคลากรใหม่';
   FIELDS.forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = ''; });
   document.getElementById('f-staffLine').value = 'สายวิชาการ';
   document.getElementById('f-status').value = 'ปฏิบัติงาน';
+  document.getElementById('tenurePreviewWrap').style.display = 'none';
+  document.getElementById('f-acctUsername').value = '';
+  document.getElementById('f-acctPassword').value = '';
+  document.getElementById('btnSetCreds').disabled = true;
+  document.getElementById('empIdNote').textContent = 'บันทึกข้อมูลบุคลากรก่อน จึงจะตั้งบัญชีผู้ใช้ได้';
   document.getElementById('editOv').classList.add('on');
 }
 
-function openEditModal(rowNum) {
+async function openEditModal(rowNum) {
   const r = _all.find(x => x.rowNum === rowNum);
   if (!r) return;
   _editRowNum = rowNum;
+  _editEmpId = r.empId || null;
   document.getElementById('editTitle').textContent = 'แก้ไขข้อมูล: ' + [r.firstName, r.lastName].join(' ');
   FIELDS.forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = r[f] || ''; });
+  updateTenurePreview();
+
+  document.getElementById('f-acctUsername').value = '';
+  document.getElementById('f-acctPassword').value = '';
+  if (_editEmpId) {
+    document.getElementById('btnSetCreds').disabled = false;
+    document.getElementById('empIdNote').textContent = 'รหัสประจำตัว: ' + _editEmpId;
+    try {
+      const cred = await gasCall('getCredentials', { empId: _editEmpId });
+      document.getElementById('f-acctUsername').value = cred.username || '';
+    } catch (e) { /* เงียบไว้ ไม่ให้บล็อกการแก้ไขข้อมูลหลัก */ }
+  } else {
+    document.getElementById('btnSetCreds').disabled = true;
+    document.getElementById('empIdNote').textContent = 'ยังไม่มีรหัสประจำตัว — กดโหลดข้อมูลใหม่ (↻) แล้วเปิดแก้ไขอีกครั้ง';
+  }
   document.getElementById('editOv').classList.add('on');
 }
 
@@ -372,6 +429,23 @@ async function saveEdit() {
     loadAll();
   } catch (e) {
     Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: e.message });
+  }
+}
+
+async function saveCredentials() {
+  if (!_editEmpId) return;
+  const username = document.getElementById('f-acctUsername').value.trim();
+  const password = document.getElementById('f-acctPassword').value.trim();
+  if (!username) {
+    Swal.fire({ icon: 'warning', title: 'กรุณาระบุ Username' });
+    return;
+  }
+  try {
+    await gasCall('setCredentials', { empId: _editEmpId, data: { username, password } });
+    document.getElementById('f-acctPassword').value = '';
+    Swal.fire({ icon: 'success', title: 'บันทึกบัญชีผู้ใช้สำเร็จ', timer: 1200, showConfirmButton: false });
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'บันทึกบัญชีไม่สำเร็จ', text: e.message });
   }
 }
 
