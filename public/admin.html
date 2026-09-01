@@ -602,7 +602,7 @@ function copyShareLink(empId) {
     Swal.fire({ icon: 'warning', title: 'ยังไม่มีรหัสประจำตัว', text: 'กรุณากดโหลดข้อมูลใหม่ (↻) ก่อน' });
     return;
   }
-  const link = location.origin + location.pathname.replace(/admin\.html$/, '') + 'profile.html?id=' + empId;
+  const link = location.origin + '/profile.html?id=' + empId;
   navigator.clipboard.writeText(link).then(() => {
     Swal.fire({ icon: 'success', title: 'คัดลอกลิงก์แล้ว', text: link, timer: 2200, showConfirmButton: false });
   }).catch(() => {
