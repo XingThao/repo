@@ -29,6 +29,19 @@ h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
 
 .wrap{max-width:1400px;margin:0 auto;padding:22px 24px 60px;}
 
+/* ── Tabs ── */
+.tabnav{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid #dbe4f0;}
+.tabbtn{font-family:'Sarabun',sans-serif;background:transparent;border:none;padding:10px 18px;
+  font-size:13.5px;font-weight:600;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tabbtn:hover{color:var(--pri);}
+.tabbtn.on{color:var(--pri);border-bottom-color:var(--gld);}
+
+/* ── Dashboard cards ── */
+.dash-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px;}
+.dcard{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 1px 6px rgba(0,0,0,.08);text-align:center;}
+.dcard-n{font-family:'Prompt',sans-serif;font-size:30px;font-weight:700;color:var(--pri);}
+.dcard-l{font-size:12.5px;color:#64748b;margin-top:4px;}
+
 /* ── Toolbar ── */
 .tool{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;}
 .tool input[type=text]{font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:8px;
@@ -122,39 +135,82 @@ h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
   </div>
 
   <div class="wrap">
-    <div class="tool">
-      <input type="text" id="searchBox" placeholder="🔍 ค้นหาชื่อ, นามสกุล, สังกัด..." oninput="renderTable()">
-      <select id="statusFilter" onchange="renderTable()">
-        <option value="all">— สถานะทั้งหมด —</option>
-        <option value="active">กำลังปฏิบัติงาน (ไม่รวมสิ้นสุดสัญญา)</option>
-        <option value="ended">สิ้นสุดสัญญาเท่านั้น</option>
-      </select>
-      <span class="count-badge" id="countBadge">— รายการ</span>
-      <div class="spacer"></div>
-      <button class="btn btn-gray" onclick="loadAll()">↻ โหลดใหม่</button>
-      <button class="btn btn-gld" onclick="openAddModal()">+ เพิ่มบุคลากรใหม่</button>
+    <div class="tabnav">
+      <button class="tabbtn on" id="tabbtn-list" onclick="switchTab('list')">📋 รายชื่อบุคลากร</button>
+      <button class="tabbtn" id="tabbtn-dash" onclick="switchTab('dash')">📊 แดชบอร์ดสัญญา</button>
     </div>
 
-    <div class="tw">
-      <table class="dt">
-        <thead>
-          <tr>
-            <th style="width:50px">ลำดับ</th>
-            <th>ชื่อ – สกุล</th>
-            <th>ตำแหน่งวิชาการ/ระดับ</th>
-            <th>ตำแหน่งบริหาร</th>
-            <th>สังกัด</th>
-            <th>สายงาน</th>
-            <th>ประเภทบุคลากร</th>
-            <th>อายุงาน</th>
-            <th>สถานะ</th>
-            <th style="width:150px">จัดการ</th>
-          </tr>
-        </thead>
-        <tbody id="tblBody">
-          <tr><td colspan="10" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>
-        </tbody>
-      </table>
+    <div id="tab-list">
+      <div class="tool">
+        <input type="text" id="searchBox" placeholder="🔍 ค้นหาชื่อ, นามสกุล, สังกัด..." oninput="renderTable()">
+        <select id="statusFilter" onchange="renderTable()">
+          <option value="all">— สถานะทั้งหมด —</option>
+          <option value="active">กำลังปฏิบัติงาน (ไม่รวมสิ้นสุดสัญญา)</option>
+          <option value="ended">สิ้นสุดสัญญาเท่านั้น</option>
+        </select>
+        <span class="count-badge" id="countBadge">— รายการ</span>
+        <div class="spacer"></div>
+        <button class="btn btn-gray" onclick="loadAll()">↻ โหลดใหม่</button>
+        <button class="btn btn-gld" onclick="openAddModal()">+ เพิ่มบุคลากรใหม่</button>
+      </div>
+
+      <div class="tw">
+        <table class="dt">
+          <thead>
+            <tr>
+              <th style="width:50px">ลำดับ</th>
+              <th>ชื่อ – สกุล</th>
+              <th>ตำแหน่งวิชาการ/ระดับ</th>
+              <th>ตำแหน่งบริหาร</th>
+              <th>สังกัด</th>
+              <th>สายงาน</th>
+              <th>ประเภทบุคลากร</th>
+              <th>อายุงาน</th>
+              <th>สถานะ</th>
+              <th style="width:150px">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="tblBody">
+            <tr><td colspan="10" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-dash" style="display:none;">
+      <div class="tool">
+        <label style="font-size:12.5px;color:#475569;font-weight:600;">ตั้งแต่วันที่</label>
+        <input type="date" id="dashFrom" onchange="renderDashboard()">
+        <label style="font-size:12.5px;color:#475569;font-weight:600;">ถึงวันที่</label>
+        <input type="date" id="dashTo" onchange="renderDashboard()">
+        <button class="btn btn-gray btn-sm" onclick="setDashRange(30)">30 วันข้างหน้า</button>
+        <button class="btn btn-gray btn-sm" onclick="setDashRange(60)">60 วันข้างหน้า</button>
+        <button class="btn btn-gray btn-sm" onclick="setDashRange(90)">90 วันข้างหน้า</button>
+        <div class="spacer"></div>
+        <button class="btn btn-gld" onclick="runContractCheckNow()">📧 ตรวจสอบและส่งอีเมลแจ้งเตือนตอนนี้</button>
+      </div>
+
+      <div class="dash-cards">
+        <div class="dcard">
+          <div class="dcard-n" id="dashCount">0</div>
+          <div class="dcard-l">คน สัญญาสิ้นสุดในช่วงที่เลือก</div>
+        </div>
+        <div class="dcard">
+          <div class="dcard-n" id="dashOverdue">0</div>
+          <div class="dcard-l">คน สัญญาสิ้นสุดไปแล้ว (ยังไม่เปลี่ยนสถานะ)</div>
+        </div>
+        <div class="dcard">
+          <div class="dcard-n" id="dashWithin30">0</div>
+          <div class="dcard-l">คน สัญญาจะสิ้นสุดภายใน 30 วัน</div>
+        </div>
+      </div>
+
+      <div class="tw" style="margin-bottom:18px;">
+        <table class="dt">
+          <thead><tr><th style="width:40px">#</th><th>ชื่อ – สกุล</th><th>สังกัด</th><th>ประเภทบุคลากร</th><th>วันสิ้นสุดสัญญา</th><th>เหลือเวลา</th></tr></thead>
+          <tbody id="dashTbody"><tr><td colspan="6" class="tc" style="padding:20px;color:#94a3b8;">เลือกช่วงวันที่ด้านบน</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -288,12 +344,103 @@ function doLogout() {
 }
 
 // ── Load & Render ─────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tab-list').style.display = tab === 'list' ? '' : 'none';
+  document.getElementById('tab-dash').style.display = tab === 'dash' ? '' : 'none';
+  document.getElementById('tabbtn-list').classList.toggle('on', tab === 'list');
+  document.getElementById('tabbtn-dash').classList.toggle('on', tab === 'dash');
+  if (tab === 'dash' && !document.getElementById('dashFrom').value) {
+    setDashRange(30);
+  }
+}
+
+function setDashRange(days) {
+  const from = new Date();
+  const to = new Date();
+  to.setDate(to.getDate() + days);
+  document.getElementById('dashFrom').value = from.toISOString().slice(0, 10);
+  document.getElementById('dashTo').value = to.toISOString().slice(0, 10);
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const fromStr = document.getElementById('dashFrom').value;
+  const toStr = document.getElementById('dashTo').value;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  let overdue = 0, within30 = 0;
+  const inRange = [];
+
+  _all.forEach(r => {
+    if (r.status === 'สิ้นสุดสัญญา') return; // นับเฉพาะคนที่ยังปฏิบัติงานอยู่ (ยังไม่ถูกปิดสถานะ)
+    if (!r.contractEndDate) return;
+    const end = new Date(r.contractEndDate);
+    if (isNaN(end.getTime())) return;
+    end.setHours(0, 0, 0, 0);
+    const daysLeft = Math.round((end - today) / 86400000);
+
+    if (daysLeft < 0) overdue++;
+    if (daysLeft >= 0 && daysLeft <= 30) within30++;
+
+    if (fromStr && toStr) {
+      const from = new Date(fromStr), to = new Date(toStr);
+      if (end >= from && end <= to) inRange.push({ r, daysLeft });
+    }
+  });
+
+  document.getElementById('dashCount').textContent = inRange.length;
+  document.getElementById('dashOverdue').textContent = overdue;
+  document.getElementById('dashWithin30').textContent = within30;
+
+  inRange.sort((a, b) => a.daysLeft - b.daysLeft);
+  if (!inRange.length) {
+    document.getElementById('dashTbody').innerHTML =
+      '<tr><td colspan="6" class="tc" style="padding:20px;color:#94a3b8;">ไม่พบบุคลากรที่สัญญาสิ้นสุดในช่วงนี้</td></tr>';
+    return;
+  }
+  let h = '';
+  inRange.forEach((item, i) => {
+    const r = item.r;
+    const dl = item.daysLeft;
+    const dlTxt = dl < 0 ? ('เลยกำหนด ' + Math.abs(dl) + ' วัน') : (dl === 0 ? 'วันนี้' : ('อีก ' + dl + ' วัน'));
+    const dlColor = dl < 0 ? '#b91c1c' : (dl <= 30 ? '#b45309' : '#166534');
+    h += '<tr>' +
+      '<td class="tc">' + (i + 1) + '</td>' +
+      '<td>' + [r.prefix, r.firstName, r.middleName, r.lastName].filter(Boolean).join(' ') + '</td>' +
+      '<td>' + (r.faculty || '-') + '</td>' +
+      '<td>' + (r.employeeType || '-') + '</td>' +
+      '<td class="tc">' + (r.contractEndDate || '-') + '</td>' +
+      '<td class="tc" style="color:' + dlColor + ';font-weight:600;">' + dlTxt + '</td>' +
+      '</tr>';
+  });
+  document.getElementById('dashTbody').innerHTML = h;
+}
+
+async function runContractCheckNow() {
+  const result = await Swal.fire({
+    icon: 'question',
+    title: 'ตรวจสอบและส่งอีเมลแจ้งเตือนตอนนี้?',
+    text: 'ระบบจะส่งอีเมลแจ้งเตือนให้บุคลากรและ admin เฉพาะรายที่สัญญาเหลือพอดีตามจำนวนวันที่ตั้งไว้ใน EXPIRY_WARN_DAYS ณ วันนี้ (หมายเหตุ: ถ้ากดปุ่มนี้ซ้ำหลายครั้งในวันเดียวกัน จะส่งอีเมลซ้ำให้คนกลุ่มเดิม เพราะระบบตรวจแบบนับวันเหลือ ไม่ได้จำว่าส่งไปแล้ว — เหมาะกับการกดทดสอบครั้งเดียว)',
+    showCancelButton: true,
+    confirmButtonText: 'ส่งเลย',
+    cancelButtonText: 'ยกเลิก',
+  });
+  if (!result.isConfirmed) return;
+  try {
+    await gasCall('runContractCheck');
+    Swal.fire({ icon: 'success', title: 'ดำเนินการแล้ว', text: 'ระบบตรวจสอบและส่งอีเมล (ถ้ามีรายชื่อที่เข้าเงื่อนไข) เรียบร้อย' });
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'ทำรายการไม่สำเร็จ', text: e.message });
+  }
+}
+
 async function loadAll() {
   document.getElementById('tblBody').innerHTML =
     '<tr><td colspan="10" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>';
   try {
     _all = await gasCall('list');
     renderTable();
+    if (document.getElementById('tab-dash').style.display !== 'none') renderDashboard();
   } catch (e) {
     Swal.fire({ icon: 'error', title: 'โหลดข้อมูลไม่สำเร็จ', text: e.message });
   }
@@ -338,6 +485,7 @@ function renderTable() {
       '<td class="tc">' + badge + '</td>' +
       '<td class="tc">' +
         '<button class="btn btn-sm btn-pri" onclick="openEditModal(' + r.rowNum + ')">แก้ไข</button> ' +
+        '<button class="btn btn-sm btn-gray" onclick="copyShareLink(\'' + r.empId + '\')" title="คัดลอกลิงก์แชร์ข้อมูลสาธารณะ">🔗</button> ' +
         '<button class="btn btn-sm btn-red" onclick="confirmDelete(' + r.rowNum + ')">ลบ</button>' +
       '</td>' +
       '</tr>';
@@ -447,6 +595,19 @@ async function saveCredentials() {
   } catch (e) {
     Swal.fire({ icon: 'error', title: 'บันทึกบัญชีไม่สำเร็จ', text: e.message });
   }
+}
+
+function copyShareLink(empId) {
+  if (!empId) {
+    Swal.fire({ icon: 'warning', title: 'ยังไม่มีรหัสประจำตัว', text: 'กรุณากดโหลดข้อมูลใหม่ (↻) ก่อน' });
+    return;
+  }
+  const link = location.origin + location.pathname.replace(/admin\.html$/, '') + 'profile.html?id=' + empId;
+  navigator.clipboard.writeText(link).then(() => {
+    Swal.fire({ icon: 'success', title: 'คัดลอกลิงก์แล้ว', text: link, timer: 2200, showConfirmButton: false });
+  }).catch(() => {
+    Swal.fire({ icon: 'info', title: 'ลิงก์สำหรับแชร์', text: link });
+  });
 }
 
 async function confirmDelete(rowNum) {
