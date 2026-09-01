@@ -135,15 +135,21 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbzPbBVLmo5Wf9HOfJ3wCbOb
 let _user = sessionStorage.getItem('empUsername') || '';
 let _pass = sessionStorage.getItem('empPassword') || '';
 
-async function gasCall(action, extra) {
+async function gasCall(action, extra, method) {
   if (!GAS_URL || GAS_URL.indexOf('YOUR_DEPLOYMENT_ID') !== -1) {
     throw new Error('ยังไม่ได้ตั้งค่า GAS_URL ในไฟล์ user.html');
   }
   const payload = Object.assign({ action }, extra || {});
-  const url = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
   let res;
   try {
-    res = await fetch(url);
+    if (method === 'POST') {
+      // ใช้ POST สำหรับ payload ขนาดใหญ่ (เช่น รูปภาพ) เพราะ GET มีข้อจำกัดความยาว URL
+      // ไม่ตั้ง Content-Type เอง เพื่อให้ browser ใช้ text/plain เป็นค่า default (เลี่ยง CORS preflight)
+      res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+    } else {
+      const url = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
+      res = await fetch(url);
+    }
   } catch (e) {
     throw new Error('เชื่อมต่อระบบไม่ได้ กรุณาลองใหม่อีกครั้ง');
   }
@@ -265,7 +271,7 @@ function onPhotoSelected(evt) {
 async function uploadPhoto(base64) {
   try {
     Swal.fire({ title: 'กำลังอัปโหลด...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    const result = await gasCall('userUploadPhoto', { username: _user, password: _pass, photoBase64: base64, mimeType: 'image/jpeg' });
+    const result = await gasCall('userUploadPhoto', { username: _user, password: _pass, photoBase64: base64, mimeType: 'image/jpeg' }, 'POST');
     showAvatar(result.photoUrl);
     if (_profile && _profile.contact) _profile.contact.photoUrl = result.photoUrl;
     Swal.fire({ icon: 'success', title: 'อัปโหลดรูปสำเร็จ', timer: 1300, showConfirmButton: false });
