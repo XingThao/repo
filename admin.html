@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบจัดการข้อมูลบุคลากร (Admin) — มรภ.ศรีสะเกษ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pri:#1b3d6f; --prid:#0f2547; --pril:#2a5cad;
+  --gld:#c9a53b; --glll:#e8c96a;
+  --bg:#eef2f8;
+}
+*,*::before,*::after{box-sizing:border-box;}
+body{margin:0;font-family:'Sarabun',sans-serif;background:var(--bg);color:#1e293b;}
+h1,h2,h3,.fd{font-family:'Prompt',sans-serif;}
+
+/* ── Topbar ── */
+#topbar{background:linear-gradient(90deg,var(--prid) 0%,var(--pri) 55%,#1e4585 100%);
+  padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:40;}
+#topbar h1{color:#fff;font-size:16px;margin:0;display:flex;align-items:center;gap:9px;}
+#topbar h1 .s{color:rgba(201,165,59,.9);font-size:12px;font-weight:400;margin-left:8px;}
+#logoutBtn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:7px;
+  padding:7px 15px;cursor:pointer;font-size:13px;font-family:'Sarabun',sans-serif;}
+#logoutBtn:hover{background:rgba(255,255,255,.28);}
+
+.wrap{max-width:1400px;margin:0 auto;padding:22px 24px 60px;}
+
+/* ── Tabs ── */
+.tabnav{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid #dbe4f0;}
+.tabbtn{font-family:'Sarabun',sans-serif;background:transparent;border:none;padding:10px 18px;
+  font-size:13.5px;font-weight:600;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tabbtn:hover{color:var(--pri);}
+.tabbtn.on{color:var(--pri);border-bottom-color:var(--gld);}
+
+/* ── Dashboard cards ── */
+.dash-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px;}
+.dcard{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 1px 6px rgba(0,0,0,.08);text-align:center;}
+.dcard-n{font-family:'Prompt',sans-serif;font-size:30px;font-weight:700;color:var(--pri);}
+.dcard-l{font-size:12.5px;color:#64748b;margin-top:4px;}
+
+/* ── Toolbar ── */
+.tool{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;}
+.tool input[type=text]{font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:8px;
+  padding:9px 13px;font-size:13.5px;min-width:230px;background:#fff;}
+.tool select{font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:8px;
+  padding:9px 13px;font-size:13.5px;background:#fff;cursor:pointer;}
+.btn{font-family:'Sarabun',sans-serif;border:none;border-radius:8px;padding:9px 17px;
+  font-size:13.5px;cursor:pointer;font-weight:600;transition:opacity .15s;}
+.btn:hover{opacity:.88;}
+.btn-pri{background:var(--pri);color:#fff;}
+.btn-gld{background:linear-gradient(135deg,var(--gld),#a07020);color:#fff;}
+.btn-gray{background:#e2e8f0;color:#334155;}
+.btn-red{background:#fee2e2;color:#b91c1c;}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:6px;}
+.spacer{flex:1;}
+.count-badge{font-size:12.5px;color:#64748b;background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:5px 14px;}
+
+/* ── Table ── */
+.tw{overflow-x:auto;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.09);background:#fff;}
+.dt{width:100%;border-collapse:collapse;font-size:13px;}
+.dt th{background:var(--pri);color:#fff;padding:9px 11px;text-align:center;
+  border:1px solid rgba(255,255,255,.14);font-weight:600;white-space:nowrap;position:sticky;top:0;}
+.dt td{padding:7px 11px;border:1px solid #e4eaf4;vertical-align:middle;white-space:nowrap;}
+.dt tbody tr:nth-child(even) td{background:#f6f9fd;}
+.dt tbody tr:hover td{background:#e8f0fe;}
+.tc{text-align:center!important;}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:600;}
+.badge-active{background:#dcfce7;color:#166534;}
+.badge-ended{background:#fee2e2;color:#b91c1c;}
+
+/* ── Modal ── */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;
+  align-items:center;justify-content:center;padding:20px;}
+.ov.on{display:flex;}
+.box{background:#fff;border-radius:13px;width:100%;max-width:760px;max-height:90vh;
+  display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.28);}
+.bhd{background:linear-gradient(90deg,var(--prid),var(--pri));padding:15px 22px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.bhd h3{color:#fff;font-size:15px;margin:0;}
+.bhd button{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:6px;
+  padding:5px 12px;cursor:pointer;font-size:13px;}
+.bhd button:hover{background:rgba(255,255,255,.3);}
+.bbody{flex:1;overflow-y:auto;padding:20px 22px;}
+.bft{padding:14px 22px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;}
+
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;}
+.fg{display:flex;flex-direction:column;gap:4px;}
+.fg label{font-size:12.5px;font-weight:600;color:#475569;}
+.fg input,.fg select{font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:7px;
+  padding:8px 11px;font-size:13.5px;}
+.fg.full{grid-column:1/-1;}
+
+/* ── Login screen ── */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,var(--prid),var(--pri) 55%,#1e4585);}
+#loginBox{background:#fff;border-radius:14px;padding:34px 32px;width:100%;max-width:360px;
+  box-shadow:0 10px 40px rgba(0,0,0,.3);text-align:center;}
+#loginBox .ico{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--gld),#a07020);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px;}
+#loginBox h2{font-size:16px;color:var(--pri);margin:0 0 4px;}
+#loginBox p{font-size:12.5px;color:#94a3b8;margin:0 0 20px;}
+#loginBox input{width:100%;font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:8px;
+  padding:11px 14px;font-size:14px;margin-bottom:12px;text-align:center;}
+#loginBox button{width:100%;background:var(--pri);color:#fff;border:none;border-radius:8px;
+  padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Sarabun',sans-serif;}
+#loginBox button:hover{background:var(--pril);}
+#loginErr{color:#dc2626;font-size:12.5px;margin-top:8px;min-height:16px;}
+
+#app{display:none;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="loginScreen">
+  <div id="loginBox">
+    <div class="ico">🔒</div>
+    <h2>เข้าสู่ระบบผู้ดูแล</h2>
+    <p>ระบบจัดการข้อมูลบุคลากร มรภ.ศรีสะเกษ</p>
+    <input type="password" id="passInput" placeholder="รหัสผ่าน" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <div id="topbar">
+    <h1>🛠️ ระบบจัดการข้อมูลบุคลากร <span class="s">มรภ.ศรีสะเกษ</span></h1>
+    <button id="logoutBtn" onclick="doLogout()">ออกจากระบบ</button>
+  </div>
+
+  <div class="wrap">
+    <div class="tabnav">
+      <button class="tabbtn on" id="tabbtn-list" onclick="switchTab('list')">📋 รายชื่อบุคลากร</button>
+      <button class="tabbtn" id="tabbtn-dash" onclick="switchTab('dash')">📊 แดชบอร์ดสัญญา</button>
+    </div>
+
+    <div id="tab-list">
+      <div class="tool">
+        <input type="text" id="searchBox" placeholder="🔍 ค้นหาชื่อ, นามสกุล, สังกัด..." oninput="renderTable()">
+        <select id="statusFilter" onchange="renderTable()">
+          <option value="all">— สถานะทั้งหมด —</option>
+          <option value="active">กำลังปฏิบัติงาน (ไม่รวมสิ้นสุดสัญญา)</option>
+          <option value="ended">สิ้นสุดสัญญาเท่านั้น</option>
+        </select>
+        <span class="count-badge" id="countBadge">— รายการ</span>
+        <div class="spacer"></div>
+        <button class="btn btn-gray" onclick="loadAll()">↻ โหลดใหม่</button>
+        <button class="btn btn-gld" onclick="openAddModal()">+ เพิ่มบุคลากรใหม่</button>
+      </div>
+
+      <div class="tw">
+        <table class="dt">
+          <thead>
+            <tr>
+              <th style="width:50px">ลำดับ</th>
+              <th>ชื่อ – สกุล</th>
+              <th>ตำแหน่งวิชาการ/ระดับ</th>
+              <th>ตำแหน่งบริหาร</th>
+              <th>สังกัด</th>
+              <th>สายงาน</th>
+              <th>ประเภทบุคลากร</th>
+              <th>อายุงาน</th>
+              <th>สถานะ</th>
+              <th style="width:150px">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="tblBody">
+            <tr><td colspan="10" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-dash" style="display:none;">
+      <div class="tool">
+        <label style="font-size:12.5px;color:#475569;font-weight:600;">ตั้งแต่วันที่</label>
+        <input type="date" id="dashFrom" onchange="renderDashboard()">
+        <label style="font-size:12.5px;color:#475569;font-weight:600;">ถึงวันที่</label>
+        <input type="date" id="dashTo" onchange="renderDashboard()">
+        <button class="btn btn-gray btn-sm" onclick="setDashRange(30)">30 วันข้างหน้า</button>
+        <button class="btn btn-gray btn-sm" onclick="setDashRange(60)">60 วันข้างหน้า</button>
+        <button class="btn btn-gray btn-sm" onclick="setDashRange(90)">90 วันข้างหน้า</button>
+        <div class="spacer"></div>
+        <button class="btn btn-gld" onclick="runContractCheckNow()">📧 ตรวจสอบและส่งอีเมลแจ้งเตือนตอนนี้</button>
+      </div>
+
+      <div class="dash-cards">
+        <div class="dcard">
+          <div class="dcard-n" id="dashCount">0</div>
+          <div class="dcard-l">คน สัญญาสิ้นสุดในช่วงที่เลือก</div>
+        </div>
+        <div class="dcard">
+          <div class="dcard-n" id="dashOverdue">0</div>
+          <div class="dcard-l">คน สัญญาสิ้นสุดไปแล้ว (ยังไม่เปลี่ยนสถานะ)</div>
+        </div>
+        <div class="dcard">
+          <div class="dcard-n" id="dashWithin30">0</div>
+          <div class="dcard-l">คน สัญญาจะสิ้นสุดภายใน 30 วัน</div>
+        </div>
+      </div>
+
+      <div class="tw" style="margin-bottom:18px;">
+        <table class="dt">
+          <thead><tr><th style="width:40px">#</th><th>ชื่อ – สกุล</th><th>สังกัด</th><th>ประเภทบุคลากร</th><th>วันสิ้นสุดสัญญา</th><th>เหลือเวลา</th></tr></thead>
+          <tbody id="dashTbody"><tr><td colspan="6" class="tc" style="padding:20px;color:#94a3b8;">เลือกช่วงวันที่ด้านบน</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADD/EDIT MODAL ══ -->
+<div class="ov" id="editOv">
+  <div class="box">
+    <div class="bhd">
+      <h3 id="editTitle">เพิ่มบุคลากรใหม่</h3>
+      <button onclick="closeEditModal()">✕ ปิด</button>
+    </div>
+    <div class="bbody">
+      <div class="fgrid">
+        <div class="fg"><label>คำนำหน้า</label><input id="f-prefix" placeholder="นาย / นาง / ดร. ..."></div>
+        <div class="fg"><label>ชื่อ *</label><input id="f-firstName"></div>
+        <div class="fg"><label>ชื่อกลาง</label><input id="f-middleName"></div>
+        <div class="fg"><label>นามสกุล *</label><input id="f-lastName"></div>
+
+        <div class="fg"><label>วุฒิการศึกษา</label>
+          <input id="f-education" list="dl-edu">
+          <datalist id="dl-edu">
+            <option value="ปริญญาเอก"><option value="ปริญญาโท">
+            <option value="ปริญญาตรี"><option value="ต่ำกว่าปริญญาตรี">
+          </datalist>
+        </div>
+        <div class="fg"><label>ตำแหน่งทางวิชาการ / ระดับ</label><input id="f-academicPos" placeholder="เช่น ผู้ช่วยศาสตราจารย์"></div>
+
+        <div class="fg"><label>ตำแหน่งบริหาร</label><input id="f-adminPos" placeholder="เช่น คณบดี, ผู้อำนวยการ"></div>
+        <div class="fg"><label>ระดับสายสนับสนุน</label><input id="f-supportLevel" placeholder="เช่น ชำนาญการ"></div>
+
+        <div class="fg"><label>สังกัด (คณะ/สำนัก/สถาบัน)</label><input id="f-faculty"></div>
+        <div class="fg"><label>สังกัดย่อย/ฝ่ายงาน</label><input id="f-subUnit"></div>
+
+        <div class="fg"><label>สายงาน</label>
+          <select id="f-staffLine">
+            <option value="สายวิชาการ">สายวิชาการ</option>
+            <option value="สายสนับสนุน">สายสนับสนุน</option>
+          </select>
+        </div>
+        <div class="fg"><label>ฝ่าย/งาน (branch)</label><input id="f-branch"></div>
+
+        <div class="fg"><label>ประเภทบุคลากร</label>
+          <input id="f-employeeType" list="dl-type">
+          <datalist id="dl-type">
+            <option value="ข้าราชการ"><option value="ข้าราชการช่วยราชการ">
+            <option value="พนักงานราชการ"><option value="เต็มเวลาถาวร">
+            <option value="เต็มเวลาสัญญาจ้าง"><option value="จ้างตามภารกิจ">
+          </datalist>
+        </div>
+        <div class="fg"><label>งบประมาณ</label><input id="f-budget" placeholder="เช่น งบแผ่นดิน"></div>
+
+        <div class="fg full"><label>สถานะการปฏิบัติงาน</label>
+          <input id="f-status" list="dl-status" placeholder="ปฏิบัติงาน">
+          <datalist id="dl-status">
+            <option value="ปฏิบัติงาน"><option value="ลาศึกษาต่อ">
+            <option value="ช่วยราชการ"><option value="สิ้นสุดสัญญา">
+          </datalist>
+        </div>
+
+        <div class="fg"><label>วันเริ่มงาน</label><input type="date" id="f-startDate" onchange="updateTenurePreview()"></div>
+        <div class="fg"><label>วันสิ้นสุดสัญญา</label><input type="date" id="f-contractEndDate"></div>
+        <div class="fg full" id="tenurePreviewWrap" style="display:none;">
+          <label>อายุงาน (คำนวณอัตโนมัติ นับถึงวันนี้)</label>
+          <input id="tenurePreview" disabled style="background:#f1f5f9;color:#64748b;">
+        </div>
+      </div>
+
+      <div style="margin-top:22px;padding-top:18px;border-top:1px dashed #cbd5e1;">
+        <div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px;">🔑 บัญชีผู้ใช้สำหรับพนักงาน (เข้าหน้า user.html)</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;" id="empIdNote">บันทึกข้อมูลบุคลากรก่อน จึงจะตั้งบัญชีผู้ใช้ได้</div>
+        <div class="fgrid">
+          <div class="fg"><label>Username</label><input id="f-acctUsername" autocomplete="off"></div>
+          <div class="fg"><label>ตั้ง/เปลี่ยน Password</label><input id="f-acctPassword" type="text" placeholder="เว้นว่าง = ไม่เปลี่ยนรหัสผ่านเดิม" autocomplete="off"></div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-sm btn-gld" id="btnSetCreds" onclick="saveCredentials()" disabled>บันทึกบัญชีผู้ใช้</button>
+        </div>
+      </div>
+    </div>
+    <div class="bft">
+      <button class="btn btn-gray" onclick="closeEditModal()">ยกเลิก</button>
+      <button class="btn btn-pri" onclick="saveEdit()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ⚠️ วาง Web App URL ของ Google Apps Script (Code.gs) ที่ deploy แล้วตรงนี้
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzPbBVLmo5Wf9HOfJ3wCbOb8RM9MV8LAgiiQPvjQneobfUybxVFRM2mpnxxvhJ_s2I-cw/exec';
+
+let _pass = sessionStorage.getItem('adminPass') || '';
+let _all = [];
+
+// ── Auth ──────────────────────────────────────────────────────
+async function gasCall(action, extra) {
+  if (!GAS_URL || GAS_URL.indexOf('YOUR_DEPLOYMENT_ID') !== -1) {
+    throw new Error('ยังไม่ได้ตั้งค่า GAS_URL ในไฟล์ admin.html (แทนที่ YOUR_DEPLOYMENT_ID ด้วย URL จริงจากการ Deploy)');
+  }
+  const payload = Object.assign({ action, password: _pass }, extra || {});
+  const url = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
+  let res;
+  try {
+    res = await fetch(url);
+  } catch (e) {
+    throw new Error('เชื่อมต่อ Apps Script ไม่ได้ (ตรวจสอบ GAS_URL และการตั้งค่า Deploy: Who has access ต้องเป็น "Anyone")');
+  }
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'เกิดข้อผิดพลาด');
+  return json.data;
+}
+
+async function doLogin() {
+  const pass = document.getElementById('passInput').value;
+  if (!pass) return;
+  document.getElementById('loginErr').textContent = '';
+  try {
+    _pass = pass;
+    await gasCall('login');
+    sessionStorage.setItem('adminPass', pass);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadAll();
+  } catch (e) {
+    document.getElementById('loginErr').textContent = 'รหัสผ่านไม่ถูกต้อง หรือเชื่อมต่อไม่ได้: ' + e.message;
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('adminPass');
+  location.reload();
+}
+
+// ── Load & Render ─────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tab-list').style.display = tab === 'list' ? '' : 'none';
+  document.getElementById('tab-dash').style.display = tab === 'dash' ? '' : 'none';
+  document.getElementById('tabbtn-list').classList.toggle('on', tab === 'list');
+  document.getElementById('tabbtn-dash').classList.toggle('on', tab === 'dash');
+  if (tab === 'dash' && !document.getElementById('dashFrom').value) {
+    setDashRange(30);
+  }
+}
+
+function setDashRange(days) {
+  const from = new Date();
+  const to = new Date();
+  to.setDate(to.getDate() + days);
+  document.getElementById('dashFrom').value = from.toISOString().slice(0, 10);
+  document.getElementById('dashTo').value = to.toISOString().slice(0, 10);
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const fromStr = document.getElementById('dashFrom').value;
+  const toStr = document.getElementById('dashTo').value;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  let overdue = 0, within30 = 0;
+  const inRange = [];
+
+  _all.forEach(r => {
+    if (r.status === 'สิ้นสุดสัญญา') return; // นับเฉพาะคนที่ยังปฏิบัติงานอยู่ (ยังไม่ถูกปิดสถานะ)
+    if (!r.contractEndDate) return;
+    const end = new Date(r.contractEndDate);
+    if (isNaN(end.getTime())) return;
+    end.setHours(0, 0, 0, 0);
+    const daysLeft = Math.round((end - today) / 86400000);
+
+    if (daysLeft < 0) overdue++;
+    if (daysLeft >= 0 && daysLeft <= 30) within30++;
+
+    if (fromStr && toStr) {
+      const from = new Date(fromStr), to = new Date(toStr);
+      if (end >= from && end <= to) inRange.push({ r, daysLeft });
+    }
+  });
+
+  document.getElementById('dashCount').textContent = inRange.length;
+  document.getElementById('dashOverdue').textContent = overdue;
+  document.getElementById('dashWithin30').textContent = within30;
+
+  inRange.sort((a, b) => a.daysLeft - b.daysLeft);
+  if (!inRange.length) {
+    document.getElementById('dashTbody').innerHTML =
+      '<tr><td colspan="6" class="tc" style="padding:20px;color:#94a3b8;">ไม่พบบุคลากรที่สัญญาสิ้นสุดในช่วงนี้</td></tr>';
+    return;
+  }
+  let h = '';
+  inRange.forEach((item, i) => {
+    const r = item.r;
+    const dl = item.daysLeft;
+    const dlTxt = dl < 0 ? ('เลยกำหนด ' + Math.abs(dl) + ' วัน') : (dl === 0 ? 'วันนี้' : ('อีก ' + dl + ' วัน'));
+    const dlColor = dl < 0 ? '#b91c1c' : (dl <= 30 ? '#b45309' : '#166534');
+    h += '<tr>' +
+      '<td class="tc">' + (i + 1) + '</td>' +
+      '<td>' + [r.prefix, r.firstName, r.middleName, r.lastName].filter(Boolean).join(' ') + '</td>' +
+      '<td>' + (r.faculty || '-') + '</td>' +
+      '<td>' + (r.employeeType || '-') + '</td>' +
+      '<td class="tc">' + (r.contractEndDate || '-') + '</td>' +
+      '<td class="tc" style="color:' + dlColor + ';font-weight:600;">' + dlTxt + '</td>' +
+      '</tr>';
+  });
+  document.getElementById('dashTbody').innerHTML = h;
+}
+
+async function runContractCheckNow() {
+  const result = await Swal.fire({
+    icon: 'question',
+    title: 'ตรวจสอบและส่งอีเมลแจ้งเตือนตอนนี้?',
+    text: 'ระบบจะส่งอีเมลแจ้งเตือนให้บุคลากรและ admin เฉพาะรายที่สัญญาเหลือพอดีตามจำนวนวันที่ตั้งไว้ใน EXPIRY_WARN_DAYS ณ วันนี้ (หมายเหตุ: ถ้ากดปุ่มนี้ซ้ำหลายครั้งในวันเดียวกัน จะส่งอีเมลซ้ำให้คนกลุ่มเดิม เพราะระบบตรวจแบบนับวันเหลือ ไม่ได้จำว่าส่งไปแล้ว — เหมาะกับการกดทดสอบครั้งเดียว)',
+    showCancelButton: true,
+    confirmButtonText: 'ส่งเลย',
+    cancelButtonText: 'ยกเลิก',
+  });
+  if (!result.isConfirmed) return;
+  try {
+    await gasCall('runContractCheck');
+    Swal.fire({ icon: 'success', title: 'ดำเนินการแล้ว', text: 'ระบบตรวจสอบและส่งอีเมล (ถ้ามีรายชื่อที่เข้าเงื่อนไข) เรียบร้อย' });
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'ทำรายการไม่สำเร็จ', text: e.message });
+  }
+}
+
+async function loadAll() {
+  document.getElementById('tblBody').innerHTML =
+    '<tr><td colspan="10" class="tc" style="padding:30px;color:#94a3b8;">กำลังโหลดข้อมูล...</td></tr>';
+  try {
+    _all = await gasCall('list');
+    renderTable();
+    if (document.getElementById('tab-dash').style.display !== 'none') renderDashboard();
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'โหลดข้อมูลไม่สำเร็จ', text: e.message });
+  }
+}
+
+function renderTable() {
+  const q = (document.getElementById('searchBox').value || '').trim().toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+
+  let rows = _all.filter(r => {
+    const name = (r.prefix + r.firstName + r.middleName + r.lastName + r.faculty + r.subUnit).toLowerCase();
+    if (q && !name.includes(q)) return false;
+    const isEnded = r.status === 'สิ้นสุดสัญญา';
+    if (statusF === 'active' && isEnded) return false;
+    if (statusF === 'ended' && !isEnded) return false;
+    return true;
+  });
+
+  document.getElementById('countBadge').textContent = rows.length + ' รายการ (ทั้งหมด ' + _all.length + ')';
+
+  if (!rows.length) {
+    document.getElementById('tblBody').innerHTML =
+      '<tr><td colspan="10" class="tc" style="padding:30px;color:#94a3b8;">ไม่พบข้อมูล</td></tr>';
+    return;
+  }
+
+  let h = '';
+  rows.forEach((r, i) => {
+    const isEnded = r.status === 'สิ้นสุดสัญญา';
+    const badge = isEnded
+      ? '<span class="badge badge-ended">สิ้นสุดสัญญา</span>'
+      : '<span class="badge badge-active">' + (r.status || 'ปฏิบัติงาน') + '</span>';
+    h += '<tr>' +
+      '<td class="tc">' + (i + 1) + '</td>' +
+      '<td>' + [r.prefix, r.firstName, r.middleName, r.lastName].filter(Boolean).join(' ') + '</td>' +
+      '<td>' + (r.academicPos || r.supportLevel || '-') + '</td>' +
+      '<td>' + (r.adminPos || '-') + '</td>' +
+      '<td>' + (r.faculty || '-') + '</td>' +
+      '<td>' + (r.staffLine || '-') + '</td>' +
+      '<td>' + (r.employeeType || '-') + '</td>' +
+      '<td style="font-size:12px;">' + (r.tenureDisplay || '-') + '</td>' +
+      '<td class="tc">' + badge + '</td>' +
+      '<td class="tc">' +
+        '<button class="btn btn-sm btn-pri" onclick="openEditModal(' + r.rowNum + ')">แก้ไข</button> ' +
+        '<button class="btn btn-sm btn-gray" onclick="copyShareLink(\'' + r.empId + '\')" title="คัดลอกลิงก์แชร์ข้อมูลสาธารณะ">🔗</button> ' +
+        '<button class="btn btn-sm btn-red" onclick="confirmDelete(' + r.rowNum + ')">ลบ</button>' +
+      '</td>' +
+      '</tr>';
+  });
+  document.getElementById('tblBody').innerHTML = h;
+}
+
+// ── Add / Edit Modal ─────────────────────────────────────────
+const FIELDS = ['prefix','firstName','middleName','lastName','education','academicPos',
+  'adminPos','supportLevel','faculty','subUnit','staffLine','branch','employeeType','budget','status',
+  'startDate','contractEndDate'];
+let _editRowNum = null;
+let _editEmpId = null;
+
+function updateTenurePreview() {
+  const start = document.getElementById('f-startDate').value;
+  const wrap = document.getElementById('tenurePreviewWrap');
+  if (!start) { wrap.style.display = 'none'; return; }
+  const s = new Date(start), now = new Date();
+  let y = now.getFullYear() - s.getFullYear(), m = now.getMonth() - s.getMonth(), d = now.getDate() - s.getDate();
+  if (d < 0) { m--; d += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+  if (m < 0) { y--; m += 12; }
+  wrap.style.display = '';
+  document.getElementById('tenurePreview').value = (y < 0) ? '—' : (y + ' ปี ' + m + ' เดือน ' + d + ' วัน');
+}
+
+function openAddModal() {
+  _editRowNum = null;
+  _editEmpId = null;
+  document.getElementById('editTitle').textContent = 'เพิ่มบุคลากรใหม่';
+  FIELDS.forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = ''; });
+  document.getElementById('f-staffLine').value = 'สายวิชาการ';
+  document.getElementById('f-status').value = 'ปฏิบัติงาน';
+  document.getElementById('tenurePreviewWrap').style.display = 'none';
+  document.getElementById('f-acctUsername').value = '';
+  document.getElementById('f-acctPassword').value = '';
+  document.getElementById('btnSetCreds').disabled = true;
+  document.getElementById('empIdNote').textContent = 'บันทึกข้อมูลบุคลากรก่อน จึงจะตั้งบัญชีผู้ใช้ได้';
+  document.getElementById('editOv').classList.add('on');
+}
+
+async function openEditModal(rowNum) {
+  const r = _all.find(x => x.rowNum === rowNum);
+  if (!r) return;
+  _editRowNum = rowNum;
+  _editEmpId = r.empId || null;
+  document.getElementById('editTitle').textContent = 'แก้ไขข้อมูล: ' + [r.firstName, r.lastName].join(' ');
+  FIELDS.forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = r[f] || ''; });
+  updateTenurePreview();
+
+  document.getElementById('f-acctUsername').value = '';
+  document.getElementById('f-acctPassword').value = '';
+  if (_editEmpId) {
+    document.getElementById('btnSetCreds').disabled = false;
+    document.getElementById('empIdNote').textContent = 'รหัสประจำตัว: ' + _editEmpId;
+    try {
+      const cred = await gasCall('getCredentials', { empId: _editEmpId });
+      document.getElementById('f-acctUsername').value = cred.username || '';
+    } catch (e) { /* เงียบไว้ ไม่ให้บล็อกการแก้ไขข้อมูลหลัก */ }
+  } else {
+    document.getElementById('btnSetCreds').disabled = true;
+    document.getElementById('empIdNote').textContent = 'ยังไม่มีรหัสประจำตัว — กดโหลดข้อมูลใหม่ (↻) แล้วเปิดแก้ไขอีกครั้ง';
+  }
+  document.getElementById('editOv').classList.add('on');
+}
+
+function closeEditModal() {
+  document.getElementById('editOv').classList.remove('on');
+}
+
+async function saveEdit() {
+  const firstName = document.getElementById('f-firstName').value.trim();
+  const lastName  = document.getElementById('f-lastName').value.trim();
+  if (!firstName || !lastName) {
+    Swal.fire({ icon: 'warning', title: 'กรอกข้อมูลไม่ครบ', text: 'กรุณากรอกชื่อและนามสกุล' });
+    return;
+  }
+  const data = {};
+  FIELDS.forEach(f => { data[f] = document.getElementById('f-' + f).value.trim(); });
+
+  try {
+    if (_editRowNum) {
+      await gasCall('update', { rowNum: _editRowNum, data });
+    } else {
+      await gasCall('add', { data });
+    }
+    closeEditModal();
+    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1200, showConfirmButton: false });
+    loadAll();
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: e.message });
+  }
+}
+
+async function saveCredentials() {
+  if (!_editEmpId) return;
+  const username = document.getElementById('f-acctUsername').value.trim();
+  const password = document.getElementById('f-acctPassword').value.trim();
+  if (!username) {
+    Swal.fire({ icon: 'warning', title: 'กรุณาระบุ Username' });
+    return;
+  }
+  try {
+    await gasCall('setCredentials', { empId: _editEmpId, data: { username, password } });
+    document.getElementById('f-acctPassword').value = '';
+    Swal.fire({ icon: 'success', title: 'บันทึกบัญชีผู้ใช้สำเร็จ', timer: 1200, showConfirmButton: false });
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'บันทึกบัญชีไม่สำเร็จ', text: e.message });
+  }
+}
+
+function copyShareLink(empId) {
+  if (!empId) {
+    Swal.fire({ icon: 'warning', title: 'ยังไม่มีรหัสประจำตัว', text: 'กรุณากดโหลดข้อมูลใหม่ (↻) ก่อน' });
+    return;
+  }
+  const link = location.origin + location.pathname.replace(/admin\.html$/, '') + 'profile.html?id=' + empId;
+  navigator.clipboard.writeText(link).then(() => {
+    Swal.fire({ icon: 'success', title: 'คัดลอกลิงก์แล้ว', text: link, timer: 2200, showConfirmButton: false });
+  }).catch(() => {
+    Swal.fire({ icon: 'info', title: 'ลิงก์สำหรับแชร์', text: link });
+  });
+}
+
+async function confirmDelete(rowNum) {
+  const r = _all.find(x => x.rowNum === rowNum);
+  const name = r ? [r.firstName, r.lastName].join(' ') : '';
+  const result = await Swal.fire({
+    icon: 'warning',
+    title: 'ยืนยันการลบ?',
+    text: 'ต้องการลบข้อมูลของ "' + name + '" ใช่หรือไม่ (ลบแล้วไม่สามารถกู้คืนได้)',
+    showCancelButton: true,
+    confirmButtonText: 'ลบเลย',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#dc2626',
+  });
+  if (!result.isConfirmed) return;
+  try {
+    await gasCall('delete', { rowNum });
+    Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1000, showConfirmButton: false });
+    loadAll();
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'ลบไม่สำเร็จ', text: e.message });
+  }
+}
+
+// ── Boot: ถ้ามี password เก็บไว้แล้ว ลอง login อัตโนมัติ ──
+(async function boot() {
+  if (_pass) {
+    try {
+      await gasCall('login');
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadAll();
+    } catch (e) {
+      sessionStorage.removeItem('adminPass');
+    }
+  }
+})();
+</script>
+</body>
+</html>

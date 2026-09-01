@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบข้อมูลส่วนบุคคล — มรภ.ศรีสะเกษ</title>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pri:#1b3d6f; --prid:#0f2547; --pril:#2a5cad;
+  --gld:#c9a53b;
+  --bg:#eef2f8;
+}
+*,*::before,*::after{box-sizing:border-box;}
+body{margin:0;font-family:'Sarabun',sans-serif;background:var(--bg);color:#1e293b;}
+h1,h2,h3{font-family:'Prompt',sans-serif;}
+
+#topbar{background:linear-gradient(90deg,var(--prid) 0%,var(--pri) 55%,#1e4585 100%);
+  padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:40;}
+#topbar h1{color:#fff;font-size:16px;margin:0;}
+#logoutBtn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:7px;
+  padding:7px 15px;cursor:pointer;font-size:13px;font-family:'Sarabun',sans-serif;}
+#logoutBtn:hover{background:rgba(255,255,255,.28);}
+
+.wrap{max-width:820px;margin:0 auto;padding:24px 18px 60px;}
+.card{background:#fff;border-radius:13px;box-shadow:0 1px 8px rgba(0,0,0,.08);padding:22px 24px;margin-bottom:20px;}
+.card h2{font-size:15px;color:var(--pri);margin:0 0 16px;display:flex;align-items:center;gap:8px;}
+
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;}
+.ritem{padding:9px 0;border-bottom:1px solid #f1f5f9;}
+.ritem .rl{font-size:11.5px;color:#94a3b8;margin-bottom:2px;}
+.ritem .rv{font-size:14px;color:#1e293b;font-weight:500;}
+.ritem.full{grid-column:1/-1;}
+
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;}
+.fg{display:flex;flex-direction:column;gap:4px;}
+.fg label{font-size:12.5px;font-weight:600;color:#475569;}
+.fg input{font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:7px;padding:9px 11px;font-size:14px;}
+.fg.full{grid-column:1/-1;}
+
+.btn{font-family:'Sarabun',sans-serif;border:none;border-radius:8px;padding:10px 20px;
+  font-size:14px;cursor:pointer;font-weight:600;}
+.btn-pri{background:var(--pri);color:#fff;}
+.btn-pri:hover{background:var(--pril);}
+
+.note{font-size:12.5px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 13px;margin-top:14px;}
+
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,var(--prid),var(--pri) 55%,#1e4585);}
+#loginBox{background:#fff;border-radius:14px;padding:34px 32px;width:100%;max-width:360px;
+  box-shadow:0 10px 40px rgba(0,0,0,.3);text-align:center;}
+#loginBox .ico{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--gld),#a07020);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px;}
+#loginBox h2{font-size:16px;color:var(--pri);margin:0 0 4px;}
+#loginBox p{font-size:12.5px;color:#94a3b8;margin:0 0 20px;}
+#loginBox input{width:100%;font-family:'Sarabun',sans-serif;border:1px solid #cbd5e1;border-radius:8px;
+  padding:11px 14px;font-size:14px;margin-bottom:12px;text-align:center;}
+#loginBox button{width:100%;background:var(--pri);color:#fff;border:none;border-radius:8px;
+  padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Sarabun',sans-serif;}
+#loginBox button:hover{background:var(--pril);}
+#loginErr{color:#dc2626;font-size:12.5px;margin-top:8px;min-height:16px;}
+
+#app{display:none;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="loginScreen">
+  <div id="loginBox">
+    <div class="ico">👤</div>
+    <h2>เข้าสู่ระบบข้อมูลส่วนบุคคล</h2>
+    <p>มหาวิทยาลัยราชภัฏศรีสะเกษ</p>
+    <input type="text" id="userInput" placeholder="Username" onkeydown="if(event.key==='Enter')document.getElementById('passInput').focus()">
+    <input type="password" id="passInput" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <div id="topbar">
+    <h1>👤 ระบบข้อมูลส่วนบุคคล</h1>
+    <button id="logoutBtn" onclick="doLogout()">ออกจากระบบ</button>
+  </div>
+
+  <div class="wrap">
+    <div class="card" style="text-align:center;">
+      <h2 style="justify-content:center;">🖼️ รูปประจำตัว</h2>
+      <img id="avatarImg" src="" alt="รูปประจำตัว" style="display:none;width:130px;height:130px;border-radius:50%;object-fit:cover;border:3px solid #e2e8f0;margin-bottom:14px;">
+      <div id="avatarPlaceholder" style="width:130px;height:130px;border-radius:50%;background:#eef2f8;border:3px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:40px;color:#94a3b8;margin:0 auto 14px;">👤</div>
+      <div>
+        <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoSelected(event)">
+        <button class="btn btn-pri" onclick="document.getElementById('photoInput').click()">📤 อัปโหลด/เปลี่ยนรูป</button>
+      </div>
+      <div style="font-size:11.5px;color:#94a3b8;margin-top:8px;">รองรับไฟล์ JPG/PNG ระบบจะปรับขนาดให้อัตโนมัติ</div>
+    </div>
+
+    <div class="card">
+      <h2>📋 ข้อมูลของฉัน</h2>
+      <div class="rgrid" id="roView"></div>
+      <div class="note">ข้อมูลส่วนนี้แก้ไขเองไม่ได้ — หากพบข้อมูลผิดพลาด กรุณาแจ้งเจ้าหน้าที่งานบริหารบุคคล (admin) เพื่อดำเนินการแก้ไขให้</div>
+      <div style="margin-top:14px;">
+        <button class="btn btn-pri" onclick="copyMyShareLink()" style="background:#475569;">🔗 คัดลอกลิงก์แชร์ข้อมูล (สำหรับส่งให้บุคคลภายนอก)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📮 ข้อมูลช่องทางการติดต่อ</h2>
+      <div class="fgrid">
+        <div class="fg"><label>บ้านเลขที่</label><input id="c-houseNo"></div>
+        <div class="fg"><label>ซอย</label><input id="c-soi"></div>
+        <div class="fg"><label>ถนน</label><input id="c-road"></div>
+        <div class="fg"><label>ตำบล/แขวง</label><input id="c-tambon"></div>
+        <div class="fg"><label>อำเภอ/เขต</label><input id="c-amphoe"></div>
+        <div class="fg"><label>จังหวัด</label><input id="c-province"></div>
+        <div class="fg"><label>รหัสไปรษณีย์</label><input id="c-zipcode" maxlength="5"></div>
+        <div class="fg"><label>เบอร์โทรศัพท์</label><input id="c-phone"></div>
+        <div class="fg full"><label>อีเมล</label><input id="c-email" type="email"></div>
+      </div>
+      <div style="margin-top:18px;">
+        <button class="btn btn-pri" onclick="saveContact()">💾 บันทึกข้อมูลติดต่อ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ⚠️ วาง Web App URL ของ Google Apps Script (Code.gs) ตัวเดียวกับที่ admin.html ใช้
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzPbBVLmo5Wf9HOfJ3wCbOb8RM9MV8LAgiiQPvjQneobfUybxVFRM2mpnxxvhJ_s2I-cw/exec';
+
+let _user = sessionStorage.getItem('empUsername') || '';
+let _pass = sessionStorage.getItem('empPassword') || '';
+
+async function gasCall(action, extra) {
+  if (!GAS_URL || GAS_URL.indexOf('YOUR_DEPLOYMENT_ID') !== -1) {
+    throw new Error('ยังไม่ได้ตั้งค่า GAS_URL ในไฟล์ user.html');
+  }
+  const payload = Object.assign({ action }, extra || {});
+  const url = GAS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
+  let res;
+  try {
+    res = await fetch(url);
+  } catch (e) {
+    throw new Error('เชื่อมต่อระบบไม่ได้ กรุณาลองใหม่อีกครั้ง');
+  }
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'เกิดข้อผิดพลาด');
+  return json.data;
+}
+
+const RO_LABELS = {
+  fullName: 'ชื่อ – สกุล', education: 'คุณวุฒิ', academicPos: 'ตำแหน่งทางวิชาการ',
+  adminPos: 'ตำแหน่งบริหาร', faculty: 'หน่วยงานต้นสังกัด', subUnit: 'สาขาวิชา/หน่วยงานย่อย',
+  branch: 'หน่วยงานปฏิบัติงาน', employeeType: 'ประเภทบุคลากร', budget: 'ประเภทงบประมาณ',
+  staffLine: 'สายงาน', status: 'สถานะการปฏิบัติงาน', startDate: 'วันเริ่มงาน',
+  contractEndDate: 'วันสิ้นสุดสัญญา', tenure: 'อายุราชการ',
+};
+const RO_ORDER = ['fullName','education','academicPos','adminPos','faculty','branch','subUnit',
+  'employeeType','budget','staffLine','status','startDate','contractEndDate','tenure'];
+
+let _profile = null;
+
+async function doLogin() {
+  const user = document.getElementById('userInput').value.trim();
+  const pass = document.getElementById('passInput').value;
+  if (!user || !pass) return;
+  document.getElementById('loginErr').textContent = '';
+  try {
+    const data = await gasCall('userLogin', { username: user, password: pass });
+    _user = user; _pass = pass;
+    sessionStorage.setItem('empUsername', user);
+    sessionStorage.setItem('empPassword', pass);
+    _profile = data;
+    renderProfile();
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  } catch (e) {
+    document.getElementById('loginErr').textContent = e.message;
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('empUsername');
+  sessionStorage.removeItem('empPassword');
+  location.reload();
+}
+
+function renderProfile() {
+  const ro = _profile.readOnly;
+  let h = '';
+  RO_ORDER.forEach(k => {
+    const isFull = (k === 'fullName');
+    h += '<div class="ritem' + (isFull ? ' full' : '') + '"><div class="rl">' + RO_LABELS[k] + '</div><div class="rv">' + (ro[k] || '-') + '</div></div>';
+  });
+  document.getElementById('roView').innerHTML = h;
+
+  const c = _profile.contact || {};
+  ['houseNo','soi','road','tambon','amphoe','province','zipcode','phone','email'].forEach(f => {
+    const el = document.getElementById('c-' + f);
+    if (el) el.value = c[f] || '';
+  });
+
+  showAvatar(c.photoUrl || '');
+}
+
+function copyMyShareLink() {
+  const empId = _profile && _profile.empId;
+  if (!empId) {
+    Swal.fire({ icon: 'warning', title: 'ไม่พบรหัสประจำตัว', text: 'กรุณาแจ้ง admin' });
+    return;
+  }
+  const link = location.origin + location.pathname.replace(/user\.html$/, '') + 'profile.html?id=' + empId;
+  navigator.clipboard.writeText(link).then(() => {
+    Swal.fire({ icon: 'success', title: 'คัดลอกลิงก์แล้ว', text: link, timer: 2200, showConfirmButton: false });
+  }).catch(() => {
+    Swal.fire({ icon: 'info', title: 'ลิงก์สำหรับแชร์ข้อมูลของคุณ', text: link });
+  });
+}
+
+function showAvatar(url) {
+  const img = document.getElementById('avatarImg');
+  const ph = document.getElementById('avatarPlaceholder');
+  if (url) {
+    img.src = url;
+    img.style.display = '';
+    ph.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    ph.style.display = '';
+  }
+}
+
+function onPhotoSelected(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    Swal.fire({ icon: 'warning', title: 'กรุณาเลือกไฟล์รูปภาพ' });
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      // ปรับขนาดรูปให้เล็กลง (สูงสุด 400px) ก่อนอัปโหลด เพื่อความเร็วและประหยัดพื้นที่
+      const maxDim = 400;
+      let w = img.width, h = img.height;
+      if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+      else if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const base64 = dataUrl.split(',')[1];
+      uploadPhoto(base64);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function uploadPhoto(base64) {
+  try {
+    Swal.fire({ title: 'กำลังอัปโหลด...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const result = await gasCall('userUploadPhoto', { username: _user, password: _pass, photoBase64: base64, mimeType: 'image/jpeg' });
+    showAvatar(result.photoUrl);
+    if (_profile && _profile.contact) _profile.contact.photoUrl = result.photoUrl;
+    Swal.fire({ icon: 'success', title: 'อัปโหลดรูปสำเร็จ', timer: 1300, showConfirmButton: false });
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'อัปโหลดไม่สำเร็จ', text: e.message });
+  }
+}
+
+async function saveContact() {
+  const data = {};
+  ['houseNo','soi','road','tambon','amphoe','province','zipcode','phone','email'].forEach(f => {
+    data[f] = document.getElementById('c-' + f).value.trim();
+  });
+  try {
+    await gasCall('userUpdateContact', { username: _user, password: _pass, data });
+    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1300, showConfirmButton: false });
+  } catch (e) {
+    Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: e.message });
+  }
+}
+
+// ── Boot: ถ้ามี session เก็บไว้แล้ว ลอง login อัตโนมัติ ──
+(async function boot() {
+  if (_user && _pass) {
+    try {
+      const data = await gasCall('userLogin', { username: _user, password: _pass });
+      _profile = data;
+      renderProfile();
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+    } catch (e) {
+      sessionStorage.removeItem('empUsername');
+      sessionStorage.removeItem('empPassword');
+    }
+  }
+})();
+</script>
+</body>
+</html>
