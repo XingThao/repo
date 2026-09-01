@@ -219,7 +219,7 @@ function copyMyShareLink() {
     Swal.fire({ icon: 'warning', title: 'ไม่พบรหัสประจำตัว', text: 'กรุณาแจ้ง admin' });
     return;
   }
-  const link = location.origin + location.pathname.replace(/user\.html$/, '') + 'profile.html?id=' + empId;
+  const link = location.origin + '/profile.html?id=' + empId;
   navigator.clipboard.writeText(link).then(() => {
     Swal.fire({ icon: 'success', title: 'คัดลอกลิงก์แล้ว', text: link, timer: 2200, showConfirmButton: false });
   }).catch(() => {
