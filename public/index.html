@@ -8,6 +8,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -422,7 +423,10 @@ body.rpt-printing .dt th{background:var(--pri)!important;-webkit-print-color-adj
 
     <!-- ── 4.2.1 ผู้บริหาร ── -->
     <div class="pg" id="pg-exec">
-      <div class="stit">ผู้บริหารมหาวิทยาลัยราชภัฏศรีสะเกษ</div>
+      <div class="stit" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>ผู้บริหารมหาวิทยาลัยราชภัฏศรีสะเกษ</span>
+        <button class="btn-prt nop" onclick="exportExecExcel()" style="font-size:12.5px;">📊 Export Excel</button>
+      </div>
       <div id="sk-exec" class="space-y-2">
         <div class="sk h-8 w-full"></div><div class="sk h-8 w-full"></div><div class="sk h-8 w-full"></div>
       </div>
@@ -443,7 +447,10 @@ body.rpt-printing .dt th{background:var(--pri)!important;-webkit-print-color-adj
 
     <!-- ── 4.2 รายชื่อตามสังกัด ── -->
     <div class="pg" id="pg-lst">
-      <div class="stit">รายชื่อบุคลากรจำแนกตามสังกัด</div>
+      <div class="stit" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>รายชื่อบุคลากรจำแนกตามสังกัด</span>
+        <button class="btn-prt nop" onclick="exportLstExcel()" style="font-size:12.5px;">📊 Export Excel</button>
+      </div>
 
       <div class="fw nop">
         <span class="fl">เลือกสังกัด / หน่วยงาน:</span>
@@ -985,6 +992,7 @@ function thaiDate(){
     <div id="rpt-head">
       <h2>📄 รายงานสารสนเทศบุคลากร มหาวิทยาลัยราชภัฏศรีสะเกษ</h2>
       <div id="rpt-head-btns">
+        <button onclick="exportExcel()">📊 Export Excel</button>
         <button onclick="printReport()">🖨️ พิมพ์ / PDF</button>
         <button onclick="closeReport()">✕ ปิด</button>
       </div>
@@ -1169,6 +1177,98 @@ async function buildReport(){
 
 // ─── Boot ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>doType());
+
+// ── export: ผู้บริหารมหาวิทยาลัย ──
+function exportExecExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('ไม่สามารถโหลดไลบรารีสำหรับสร้างไฟล์ Excel ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่');
+    return;
+  }
+  const table = document.querySelector('#ct-exec table.dt');
+  if (!table) { alert('ยังไม่มีข้อมูลให้ส่งออก กรุณารอให้หน้านี้โหลดเสร็จก่อน'); return; }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.table_to_sheet(table);
+  XLSX.utils.book_append_sheet(wb, ws, 'ผู้บริหารมหาวิทยาลัย');
+  XLSX.writeFile(wb, 'รายชื่อผู้บริหาร_มรภ.ศรีสะเกษ_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
+// ── export: รายชื่อตามสังกัด (แยกเป็นคนละ sheet ต่อคณะ/หน่วยงาน ตามที่กำลังแสดงอยู่) ──
+function exportLstExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('ไม่สามารถโหลดไลบรารีสำหรับสร้างไฟล์ Excel ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่');
+    return;
+  }
+  const blocks = document.querySelectorAll('#ct-lst .mb-8');
+  if (!blocks.length) { alert('ยังไม่มีข้อมูลให้ส่งออก กรุณาเลือกสังกัดหรือรอให้ข้อมูลโหลดเสร็จก่อน'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const usedNames = {};
+  blocks.forEach((block, idx) => {
+    const hdrEl = block.querySelector('.fhdr');
+    const table = block.querySelector('table.dt');
+    if (!table) return;
+    let name = (hdrEl ? hdrEl.textContent.trim() : ('สังกัด ' + (idx + 1)))
+      .replace(/[\[\]\*\?\/\\:]/g, '').slice(0, 31) || ('Sheet' + (idx + 1));
+    if (usedNames[name]) {
+      usedNames[name]++;
+      const suf = '_' + usedNames[name];
+      name = name.slice(0, 31 - suf.length) + suf;
+    } else {
+      usedNames[name] = 1;
+    }
+    const ws = XLSX.utils.table_to_sheet(table);
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  });
+
+  XLSX.writeFile(wb, 'รายชื่อบุคลากรตามสังกัด_มรภ.ศรีสะเกษ_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
+// ── export to excel (แปลงทุกตารางในรายงานเป็นคนละ sheet ในไฟล์เดียว) ──
+function exportExcel(){
+  if (typeof XLSX === 'undefined') {
+    alert('ไม่สามารถโหลดไลบรารีสำหรับสร้างไฟล์ Excel ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่');
+    return;
+  }
+  const pages = document.querySelectorAll('#rpt-content .rpt-page');
+  if (!pages.length) { alert('ไม่มีข้อมูลรายงานให้ส่งออก กรุณารอให้รายงานโหลดเสร็จก่อน'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const usedNames = {};
+  function addSheet(rawName, table){
+    if (!table) return;
+    let name = String(rawName).replace(/[\[\]\*\?\/\\:]/g,'').trim() || 'Sheet';
+    name = name.slice(0,31);
+    if (usedNames[name]) {
+      usedNames[name]++;
+      const suf = '_' + usedNames[name];
+      name = name.slice(0, 31 - suf.length) + suf;
+    } else {
+      usedNames[name] = 1;
+    }
+    const ws = XLSX.utils.table_to_sheet(table);
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  }
+
+  pages.forEach((page, idx) => {
+    const pgNo = idx + 1;
+    const titleEl = page.querySelector('.pg-title');
+    const pageTitle = titleEl ? titleEl.textContent.trim() : ('หน้า ' + pgNo);
+    const tables = page.querySelectorAll('table.dt');
+    if (tables.length <= 1) {
+      addSheet(pgNo + '. ' + pageTitle, tables[0]);
+    } else {
+      // หน้าที่มีมากกว่า 1 ตาราง (เช่น ตำแหน่งวิชาการ + คุณวุฒิ) แยกเป็นคนละ sheet โดยใช้หัวข้อย่อยประกอบชื่อ
+      const subs = page.querySelectorAll('.rpt-sub');
+      tables.forEach((t, ti) => {
+        const subLabel = subs[ti] ? subs[ti].textContent.trim() : ('ตาราง ' + (ti + 1));
+        addSheet(pgNo + '-' + (ti + 1) + ' ' + subLabel, t);
+      });
+    }
+  });
+
+  const fname = 'รายงานสารสนเทศบุคลากร_มรภ.ศรีสะเกษ_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+  XLSX.writeFile(wb, fname);
+}
 
 // ── open / close / print ────────────────────────────────────────
 async function openReport(){
